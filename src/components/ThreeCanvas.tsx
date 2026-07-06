@@ -1492,53 +1492,93 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     });
 
     // 9. Spawn Entity mesh
-    // Dark silhouette cylinder with glowing red eyes
+    // Creepy stick figure shadow monster with limbs and a white face plate
     const createEntity = () => {
       const entityGroup = new THREE.Group();
       
-      const bodyMat = new THREE.MeshBasicMaterial({ color: 0x050505, transparent: true, opacity: 0.95 });
-      const bodyGeo = new THREE.CylinderGeometry(0.4, 0.4, 2.2, 8);
-      const body = new THREE.Mesh(bodyGeo, bodyMat);
-      body.position.y = 1.1;
-      entityGroup.add(body);
+      const blackMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xeeeeee });
 
-      // Glowing red eyes
-      const eyeGeo = new THREE.SphereGeometry(0.04, 8, 8);
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeL.position.set(-0.15, 1.8, 0.38);
-      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
-      eyeR.position.set(0.15, 1.8, 0.38);
-      entityGroup.add(eyeL);
-      entityGroup.add(eyeR);
+      // Torso
+      const torsoGeo = new THREE.BoxGeometry(0.12, 1.4, 0.1);
+      const torso = new THREE.Mesh(torsoGeo, blackMat);
+      torso.position.y = 1.3;
+      entityGroup.add(torso);
 
-      // Eerie pointlight reflecting on floors
-      const redLight = new THREE.PointLight(0xff0000, 2.0, 4);
-      redLight.position.set(0, 1.8, 0.5);
+      // Head
+      const headGeo = new THREE.SphereGeometry(0.16, 8, 8);
+      const head = new THREE.Mesh(headGeo, blackMat);
+      head.position.y = 2.1;
+      entityGroup.add(head);
+
+      // White face plate
+      const faceGeo = new THREE.PlaneGeometry(0.1, 0.1);
+      const face = new THREE.Mesh(faceGeo, whiteMat);
+      face.position.set(0, 2.1, 0.17);
+      entityGroup.add(face);
+
+      // Limbs
+      const legGeo = new THREE.BoxGeometry(0.06, 1.2, 0.06);
+      const armGeo = new THREE.BoxGeometry(0.05, 1.1, 0.05);
+
+      // Left Leg Group (pivot at hip)
+      const leftLegGroup = new THREE.Group();
+      leftLegGroup.position.set(-0.15, 0.7, 0);
+      const leftLeg = new THREE.Mesh(legGeo, blackMat);
+      leftLeg.position.y = -0.5;
+      leftLegGroup.add(leftLeg);
+      entityGroup.add(leftLegGroup);
+
+      // Right Leg Group (pivot at hip)
+      const rightLegGroup = new THREE.Group();
+      rightLegGroup.position.set(0.15, 0.7, 0);
+      const rightLeg = new THREE.Mesh(legGeo, blackMat);
+      rightLeg.position.y = -0.5;
+      rightLegGroup.add(rightLeg);
+      entityGroup.add(rightLegGroup);
+
+      // Left Arm Group (pivot at shoulder)
+      const leftArmGroup = new THREE.Group();
+      leftArmGroup.position.set(-0.18, 1.8, 0);
+      const leftArm = new THREE.Mesh(armGeo, blackMat);
+      leftArm.position.y = -0.5;
+      leftArmGroup.add(leftArm);
+      entityGroup.add(leftArmGroup);
+
+      // Right Arm Group (pivot at shoulder)
+      const rightArmGroup = new THREE.Group();
+      rightArmGroup.position.set(0.18, 1.8, 0);
+      const rightArm = new THREE.Mesh(armGeo, blackMat);
+      rightArm.position.y = -0.5;
+      rightArmGroup.add(rightArm);
+      entityGroup.add(rightArmGroup);
+
+      // Distorted red glow near the head
+      const redLight = new THREE.PointLight(0xff0000, 1.5, 3);
+      redLight.position.set(0, 2.1, 0.2);
       entityGroup.add(redLight);
 
-      // Find an open cell far from player spawn (which is at [1,1])
-      let spawnCell = { x: MAP_SIZE - 2, z: MAP_SIZE - 2 };
-      if (grid[spawnCell.x][spawnCell.z] !== 0) {
-        // search adjacent cells
-        for (let dx = -1; dx <= 1; dx++) {
-          for (let dz = -1; dz <= 1; dz++) {
-            if (grid[spawnCell.x + dx]?.[spawnCell.z + dz] === 0) {
-              spawnCell = { x: spawnCell.x + dx, z: spawnCell.z + dz };
-              break;
-            }
-          }
-        }
-      }
+      // Store limb references and AI states
+      entityGroup.userData = {
+        leftLeg: leftLegGroup,
+        rightLeg: rightLegGroup,
+        leftArm: leftArmGroup,
+        rightArm: rightArmGroup,
+        isChasing: false,
+        chaseTimer: 0,
+        appearCooldown: 12.0 + Math.random() * 8.0, // starts with initial delay
+      };
 
-      entityGroup.position.set(spawnCell.x * CELL_SIZE, 0, spawnCell.z * CELL_SIZE);
+      // Set initial position
+      entityGroup.position.set((MAP_SIZE - 2) * CELL_SIZE, 0, (MAP_SIZE - 2) * CELL_SIZE);
+      entityGroup.visible = false; // Start hidden
+
       scene.add(entityGroup);
       entityMeshRef.current = entityGroup;
     };
 
-    if (theme.entitySpawnChance > 0) {
-      createEntity();
-    }
+    // Always create the entity structure in each level
+    createEntity();
 
     // 10. Frame Loop & Player Physics/Update
     let animationFrameId: number;
@@ -1910,46 +1950,121 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       // Entity AI/Vibe
       if (entityMeshRef.current) {
-        const entPos = entityMeshRef.current.position;
-        const distToPlayer = camera.position.distanceTo(entPos);
-        setEntityDistance(distToPlayer);
+        const ent = entityMeshRef.current;
+        const uData = ent.userData;
+        const entPos = ent.position;
 
-        // Make the entity face the player (billboard-ish)
-        entityMeshRef.current.lookAt(camera.position.x, entityMeshRef.current.position.y, camera.position.z);
+        if (!uData.isChasing) {
+          // Decrement cooldown
+          uData.appearCooldown -= delta;
+          setEntityDistance(999.0); // Reset warning overlay when hidden
 
-        // Proximity mechanics: glitch synthesizer static
-        if (distToPlayer < 8.0) {
-          // Entity starts stalking player slowly if too close
-          const dir = new THREE.Vector3().subVectors(camera.position, entPos).normalize();
+          if (uData.appearCooldown <= 0) {
+            // Find a random walkable cell to spawn out of player's direct view
+            const px = Math.round(camera.position.x / CELL_SIZE);
+            const pz = Math.round(camera.position.z / CELL_SIZE);
+            let candidates: { x: number; z: number }[] = [];
+
+            // Get camera horizontal forward direction
+            const cameraDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            cameraDir.y = 0;
+            cameraDir.normalize();
+
+            for (let x = 1; x < MAP_SIZE - 1; x++) {
+              for (let z = 1; z < MAP_SIZE - 1; z++) {
+                if (grid[x][z] === 0) {
+                  const distCells = Math.abs(x - px) + Math.abs(z - pz);
+                  // Spawn between 3 to 7 cells away
+                  if (distCells >= 3 && distCells <= 7) {
+                    const toCell = new THREE.Vector3(x * CELL_SIZE - camera.position.x, 0, z * CELL_SIZE - camera.position.z).normalize();
+                    const dot = cameraDir.dot(toCell);
+                    // Spawn behind or to the sides (not directly in front)
+                    if (dot < 0.4) {
+                      candidates.push({ x, z });
+                    }
+                  }
+                }
+              }
+            }
+
+            // Fallback: search for any open cells 4 to 8 cells away if no off-screen cells found
+            if (candidates.length === 0) {
+              for (let x = 1; x < MAP_SIZE - 1; x++) {
+                for (let z = 1; z < MAP_SIZE - 1; z++) {
+                  if (grid[x][z] === 0) {
+                    const distCells = Math.abs(x - px) + Math.abs(z - pz);
+                    if (distCells >= 4 && distCells <= 8) {
+                      candidates.push({ x, z });
+                    }
+                  }
+                }
+              }
+            }
+
+            if (candidates.length > 0) {
+              const spawn = candidates[Math.floor(Math.random() * candidates.length)];
+              entPos.set(spawn.x * CELL_SIZE, 0, spawn.z * CELL_SIZE);
+              ent.visible = true;
+              uData.isChasing = true;
+              uData.chaseTimer = 11.0 + Math.random() * 4.0; // chases for 11-15 seconds
+              Synthesizer.triggerEntityGlitch();
+            } else {
+              // Retry in a few seconds if no grid cell fits
+              uData.appearCooldown = 3.0;
+            }
+          }
+        } else {
+          // Active Chase Mode!
+          uData.chaseTimer -= delta;
+          const distToPlayer = camera.position.distanceTo(entPos);
+          setEntityDistance(distToPlayer);
+
+          // Make the entity face the player (billboard orientation)
+          ent.lookAt(camera.position.x, entPos.y, camera.position.z);
+
+          // Move the entity towards the player at chase speed
+          const dir = new THREE.Vector3().subVectors(camera.position, entPos);
+          dir.y = 0;
+          dir.normalize();
+          entPos.add(dir.multiplyScalar(2.2 * delta));
+
+          // Swing limbs creepily during the chase!
+          const swingSpeed = 15;
+          const swingAngle = 0.5;
+          uData.leftLeg.rotation.x = Math.sin(elapsedTime * swingSpeed) * swingAngle;
+          uData.rightLeg.rotation.x = -Math.sin(elapsedTime * swingSpeed) * swingAngle;
           
-          // Entity only moves when NOT looked at (Angels style!)
-          const playerGazeDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
-          const toPlayerDir = new THREE.Vector3().subVectors(camera.position, entPos).normalize();
-          const dotProduct = playerGazeDir.dot(toPlayerDir.clone().negate());
+          uData.leftArm.rotation.x = Math.cos(elapsedTime * swingSpeed * 1.2) * swingAngle * 1.5;
+          uData.rightArm.rotation.x = -Math.cos(elapsedTime * swingSpeed * 1.2) * swingAngle * 1.5;
+          uData.leftArm.rotation.z = -0.35 + Math.sin(elapsedTime * 5) * 0.15;
+          uData.rightArm.rotation.z = 0.35 - Math.sin(elapsedTime * 5) * 0.15;
 
-          // If player is looking away (dotProduct < 0.6)
-          if (dotProduct < 0.5) {
-            entPos.add(dir.multiplyScalar(1.2 * delta));
+          // Eerie glitch static sounds when nearby
+          if (distToPlayer < 8.0) {
+            if (Math.random() > 0.97 - (8.0 - distToPlayer) * 0.015) {
+              Synthesizer.triggerEntityGlitch();
+            }
           }
 
-          // Distorted glitch trigger
-          if (Math.random() > 0.98 - (8.0 - distToPlayer) * 0.02) {
+          // "chasing you, but not catching you":
+          // Dissolve / vanish when it gets within 2.8 meters (close range visual contact)
+          // or if the timer expires.
+          if (distToPlayer < 2.8 || uData.chaseTimer <= 0) {
             Synthesizer.triggerEntityGlitch();
-          }
+            
+            // Creepy dissolve transition: set invisible, reset states
+            ent.visible = false;
+            uData.isChasing = false;
+            
+            // Reset limbs to neutral standing position
+            uData.leftLeg.rotation.set(0, 0, 0);
+            uData.rightLeg.rotation.set(0, 0, 0);
+            uData.leftArm.rotation.set(0, 0, 0);
+            uData.rightArm.rotation.set(0, 0, 0);
 
-          // Jump-vanish or teleport if player collides with it
-          if (distToPlayer < 1.3) {
-            Synthesizer.triggerEntityGlitch();
-            // Teleport entity back to far side of map
-            let teleportX = MAP_SIZE - 2;
-            let teleportZ = MAP_SIZE - 2;
-            if (camera.position.x > (MAP_SIZE * CELL_SIZE) / 2) {
-              teleportX = 2;
-            }
-            if (camera.position.z > (MAP_SIZE * CELL_SIZE) / 2) {
-              teleportZ = 2;
-            }
-            entPos.set(teleportX * CELL_SIZE, 0, teleportZ * CELL_SIZE);
+            // Set new cooldown before next appearance (20 to 45 seconds of suspense)
+            uData.appearCooldown = 20.0 + Math.random() * 25.0;
+            setEntityDistance(999.0);
           }
         }
       }
