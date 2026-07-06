@@ -1492,73 +1492,120 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     });
 
     // 9. Spawn Entity mesh
-    // Creepy stick figure shadow monster with limbs and a white face plate
+    // Twisted black wire stick figure monster (matching the reference image)
     const createEntity = () => {
       const entityGroup = new THREE.Group();
       
-      const blackMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
-      const whiteMat = new THREE.MeshBasicMaterial({ color: 0xeeeeee });
+      const wireMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
 
-      // Torso
-      const torsoGeo = new THREE.BoxGeometry(0.12, 1.4, 0.1);
-      const torso = new THREE.Mesh(torsoGeo, blackMat);
-      torso.position.y = 1.3;
-      entityGroup.add(torso);
+      // Torso - built as a bundle of twisted wire/branch strands
+      const torsoGroup = new THREE.Group();
+      entityGroup.add(torsoGroup);
 
-      // Head
-      const headGeo = new THREE.SphereGeometry(0.16, 8, 8);
-      const head = new THREE.Mesh(headGeo, blackMat);
-      head.position.y = 2.1;
-      entityGroup.add(head);
+      const createWireSegment = (parent: THREE.Group, radius: number, length: number, pos: THREE.Vector3, rot: THREE.Euler) => {
+        const geo = new THREE.CylinderGeometry(radius, radius, length, 6);
+        const mesh = new THREE.Mesh(geo, wireMat);
+        mesh.position.copy(pos);
+        mesh.rotation.copy(rot);
+        parent.add(mesh);
+      };
 
-      // White face plate
-      const faceGeo = new THREE.PlaneGeometry(0.1, 0.1);
-      const face = new THREE.Mesh(faceGeo, whiteMat);
-      face.position.set(0, 2.1, 0.17);
-      entityGroup.add(face);
+      // Torso strand 1 (crooked spine segment)
+      createWireSegment(torsoGroup, 0.02, 0.8, new THREE.Vector3(-0.03, 1.1, 0.02), new THREE.Euler(0.1, 0, 0.15));
+      createWireSegment(torsoGroup, 0.02, 0.8, new THREE.Vector3(0.02, 1.7, -0.01), new THREE.Euler(-0.15, 0, -0.1));
+      
+      // Torso strand 2 (wrap-around wire)
+      createWireSegment(torsoGroup, 0.015, 0.7, new THREE.Vector3(0.04, 1.0, -0.03), new THREE.Euler(-0.2, 0.1, -0.1));
+      createWireSegment(torsoGroup, 0.015, 0.7, new THREE.Vector3(-0.02, 1.6, 0.03), new THREE.Euler(0.15, -0.2, 0.2));
 
-      // Limbs
-      const legGeo = new THREE.BoxGeometry(0.06, 1.2, 0.06);
-      const armGeo = new THREE.BoxGeometry(0.05, 1.1, 0.05);
+      // Torso strand 3 (straight-ish core wire)
+      createWireSegment(torsoGroup, 0.025, 1.3, new THREE.Vector3(0, 1.35, 0), new THREE.Euler(0, 0, -0.05));
 
+      // Head - horizontal loop/crown of wire (matching the loop head in the picture)
+      const headGroup = new THREE.Group();
+      headGroup.position.set(0, 2.05, 0);
+      
+      // Horizontal loop ring
+      const torusGeo = new THREE.TorusGeometry(0.18, 0.035, 6, 18);
+      const torusMesh = new THREE.Mesh(torusGeo, wireMat);
+      torusMesh.rotation.x = Math.PI / 2;
+      headGroup.add(torusMesh);
+
+      // A smaller loop nested inside at an angle for a more organic wire tangle
+      const torusGeo2 = new THREE.TorusGeometry(0.12, 0.025, 6, 18);
+      const torusMesh2 = new THREE.Mesh(torusGeo2, wireMat);
+      torusMesh2.rotation.set(Math.PI / 4, Math.PI / 4, 0);
+      headGroup.add(torusMesh2);
+      
+      entityGroup.add(headGroup);
+
+      // Limbs - designed as crooked jointed legs/arms made of wire
+      
       // Left Leg Group (pivot at hip)
       const leftLegGroup = new THREE.Group();
       leftLegGroup.position.set(-0.15, 0.7, 0);
-      const leftLeg = new THREE.Mesh(legGeo, blackMat);
-      leftLeg.position.y = -0.5;
-      leftLegGroup.add(leftLeg);
+      
+      // Thigh (angled outwards)
+      const leftThighGroup = new THREE.Group();
+      createWireSegment(leftThighGroup, 0.02, 0.7, new THREE.Vector3(0, -0.3, 0), new THREE.Euler(0, 0, 0.25));
+      leftLegGroup.add(leftThighGroup);
+      
+      // Calf (crooked, angled back in)
+      const leftCalfGroup = new THREE.Group();
+      leftCalfGroup.position.set(-0.06, -0.6, 0);
+      createWireSegment(leftCalfGroup, 0.018, 0.7, new THREE.Vector3(0, -0.3, 0), new THREE.Euler(0.1, 0, -0.18));
+      leftThighGroup.add(leftCalfGroup);
       entityGroup.add(leftLegGroup);
 
       // Right Leg Group (pivot at hip)
       const rightLegGroup = new THREE.Group();
       rightLegGroup.position.set(0.15, 0.7, 0);
-      const rightLeg = new THREE.Mesh(legGeo, blackMat);
-      rightLeg.position.y = -0.5;
-      rightLegGroup.add(rightLeg);
+      
+      // Thigh (angled outwards)
+      const rightThighGroup = new THREE.Group();
+      createWireSegment(rightThighGroup, 0.02, 0.7, new THREE.Vector3(0, -0.3, 0), new THREE.Euler(0, 0, -0.25));
+      rightLegGroup.add(rightThighGroup);
+      
+      // Calf (crooked, angled back in)
+      const rightCalfGroup = new THREE.Group();
+      rightCalfGroup.position.set(0.06, -0.6, 0);
+      createWireSegment(rightCalfGroup, 0.018, 0.7, new THREE.Vector3(0, -0.3, 0), new THREE.Euler(-0.1, 0, 0.18));
+      rightThighGroup.add(rightCalfGroup);
       entityGroup.add(rightLegGroup);
 
       // Left Arm Group (pivot at shoulder)
       const leftArmGroup = new THREE.Group();
       leftArmGroup.position.set(-0.18, 1.8, 0);
-      const leftArm = new THREE.Mesh(armGeo, blackMat);
-      leftArm.position.y = -0.5;
-      leftArmGroup.add(leftArm);
+      
+      // Upper arm
+      const leftUpperArmGroup = new THREE.Group();
+      createWireSegment(leftUpperArmGroup, 0.016, 0.65, new THREE.Vector3(0, -0.28, 0), new THREE.Euler(0.1, 0, -0.2));
+      leftArmGroup.add(leftUpperArmGroup);
+      
+      // Lower arm (long creepy wire hanging down)
+      const leftForearmGroup = new THREE.Group();
+      leftForearmGroup.position.set(0.05, -0.55, 0);
+      createWireSegment(leftForearmGroup, 0.014, 0.75, new THREE.Vector3(0, -0.32, 0), new THREE.Euler(0.2, 0, -0.05));
+      leftUpperArmGroup.add(leftForearmGroup);
       entityGroup.add(leftArmGroup);
 
       // Right Arm Group (pivot at shoulder)
       const rightArmGroup = new THREE.Group();
       rightArmGroup.position.set(0.18, 1.8, 0);
-      const rightArm = new THREE.Mesh(armGeo, blackMat);
-      rightArm.position.y = -0.5;
-      rightArmGroup.add(rightArm);
+      
+      // Upper arm
+      const rightUpperArmGroup = new THREE.Group();
+      createWireSegment(rightUpperArmGroup, 0.016, 0.65, new THREE.Vector3(0, -0.28, 0), new THREE.Euler(-0.1, 0, 0.2));
+      rightArmGroup.add(rightUpperArmGroup);
+      
+      // Lower arm (long creepy wire hanging down)
+      const rightForearmGroup = new THREE.Group();
+      rightForearmGroup.position.set(-0.05, -0.55, 0);
+      createWireSegment(rightForearmGroup, 0.014, 0.75, new THREE.Vector3(0, -0.32, 0), new THREE.Euler(-0.2, 0, 0.05));
+      rightUpperArmGroup.add(rightForearmGroup);
       entityGroup.add(rightArmGroup);
 
-      // Distorted red glow near the head
-      const redLight = new THREE.PointLight(0xff0000, 1.5, 3);
-      redLight.position.set(0, 2.1, 0.2);
-      entityGroup.add(redLight);
-
-      // Store limb references and AI states
+      // Store references in userData
       entityGroup.userData = {
         leftLeg: leftLegGroup,
         rightLeg: rightLegGroup,
