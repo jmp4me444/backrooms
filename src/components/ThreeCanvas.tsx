@@ -2060,7 +2060,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               ent.visible = true;
               uData.isChasing = true;
               uData.chaseTimer = 11.0 + Math.random() * 4.0; // chases for 11-15 seconds
-              Synthesizer.triggerEntityGlitch();
+              Synthesizer.triggerEntityScreech();
             } else {
               // Retry in a few seconds if no grid cell fits
               uData.appearCooldown = 3.0;
