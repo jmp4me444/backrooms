@@ -1566,7 +1566,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         rightArm: rightArmGroup,
         isChasing: false,
         chaseTimer: 0,
-        appearCooldown: 12.0 + Math.random() * 8.0, // starts with initial delay
+        appearCooldown: 2.0 + Math.random() * 4.0, // starts with a short initial delay so the player sees it early
       };
 
       // Set initial position
@@ -1960,40 +1960,46 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           setEntityDistance(999.0); // Reset warning overlay when hidden
 
           if (uData.appearCooldown <= 0) {
-            // Find a random walkable cell to spawn out of player's direct view
+            // Find a walkable corridor cell with straight line of sight to spawn the monster
             const px = Math.round(camera.position.x / CELL_SIZE);
             const pz = Math.round(camera.position.z / CELL_SIZE);
             let candidates: { x: number; z: number }[] = [];
 
-            // Get camera horizontal forward direction
-            const cameraDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            cameraDir.y = 0;
-            cameraDir.normalize();
-
-            for (let x = 1; x < MAP_SIZE - 1; x++) {
-              for (let z = 1; z < MAP_SIZE - 1; z++) {
-                if (grid[x][z] === 0) {
-                  const distCells = Math.abs(x - px) + Math.abs(z - pz);
-                  // Spawn between 3 to 7 cells away
-                  if (distCells >= 3 && distCells <= 7) {
-                    const toCell = new THREE.Vector3(x * CELL_SIZE - camera.position.x, 0, z * CELL_SIZE - camera.position.z).normalize();
-                    const dot = cameraDir.dot(toCell);
-                    // Spawn behind or to the sides (not directly in front)
-                    if (dot < 0.4) {
-                      candidates.push({ x, z });
+            // 1. Try to find a straight corridor with clear line of sight in 4 directions
+            for (let d = 3; d <= 7; d++) {
+              const directions = [
+                { dx: 1, dz: 0 },
+                { dx: -1, dz: 0 },
+                { dx: 0, dz: 1 },
+                { dx: 0, dz: -1 }
+              ];
+              for (const dir of directions) {
+                const sx = px + dir.dx * d;
+                const sz = pz + dir.dz * d;
+                if (sx > 0 && sx < MAP_SIZE - 1 && sz > 0 && sz < MAP_SIZE - 1) {
+                  let clearPath = true;
+                  for (let i = 1; i <= d; i++) {
+                    const tx = px + dir.dx * i;
+                    const tz = pz + dir.dz * i;
+                    if (grid[tx]?.[tz] !== 0 && grid[tx]?.[tz] !== 4) { // Open walkway or open stairs cell
+                      clearPath = false;
+                      break;
                     }
+                  }
+                  if (clearPath) {
+                    candidates.push({ x: sx, z: sz });
                   }
                 }
               }
             }
 
-            // Fallback: search for any open cells 4 to 8 cells away if no off-screen cells found
+            // Fallback: search for any open cells 3 to 6 cells away if no straight corridors found
             if (candidates.length === 0) {
               for (let x = 1; x < MAP_SIZE - 1; x++) {
                 for (let z = 1; z < MAP_SIZE - 1; z++) {
                   if (grid[x][z] === 0) {
                     const distCells = Math.abs(x - px) + Math.abs(z - pz);
-                    if (distCells >= 4 && distCells <= 8) {
+                    if (distCells >= 3 && distCells <= 6) {
                       candidates.push({ x, z });
                     }
                   }
