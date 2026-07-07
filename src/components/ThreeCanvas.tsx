@@ -1990,6 +1990,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (dist < minDistance) {
           minDistance = dist;
           nearestItem = item;
+          onItemFound(item.id);
         }
       }
 
@@ -2003,6 +2004,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (dist < minDoorDist) {
           minDoorDist = dist;
           nearestDoor = door;
+          if (dist < 2.0 && !door.isOpen) {
+            door.isOpen = true;
+            Synthesizer.triggerEntityGlitch();
+          }
         }
       }
 
@@ -2289,45 +2294,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       {/* Retro VHS overlay screen filter covering the full canvas */}
       <VHSOverlay entityDistance={entityDistance} />
 
-      {/* Retro HUD Interface */}
-      <div className="absolute top-3 left-3 font-mono text-[9px] text-green-500 bg-black/75 p-2 border border-green-500/20 rounded pointer-events-none uppercase z-30">
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-          <span>VIRTUAL_FEED: ACTIVE</span>
-        </div>
-        <div className="mt-1 text-[8px] text-green-500/60">
-          SOUND: {theme.ambientSound.toUpperCase()}
-        </div>
-      </div>
 
-      {/* Noclip toggle / helper buttons */}
-      <div className="absolute top-3 right-3 flex gap-1.5 z-30 pointer-events-auto">
-        <button
-          onClick={() => setFlashlightOn(!flashlightOn)}
-          className={`px-2 py-0.5 font-mono text-[9px] border rounded transition ${
-            flashlightOn 
-              ? 'bg-green-500/25 border-green-500 text-green-500 shadow-[0_0_8px_rgba(16,185,129,0.3)]' 
-              : 'bg-black/75 border-green-500/30 text-green-500/40'
-          }`}
-          title="Toggle Flashlight"
-        >
-          LIGHT
-        </button>
-        <button
-          onClick={() => setNoclipMode(!noclipMode)}
-          className={`px-2 py-0.5 font-mono text-[9px] border rounded transition ${
-            noclipMode 
-              ? 'bg-red-500/25 border-red-500 text-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.3)]' 
-              : 'bg-black/75 border-green-500/30 text-green-500/40'
-          }`}
-          title="No Collision Mode"
-        >
-          NOCLIP {noclipMode ? 'ON' : 'OFF'}
-        </button>
-      </div>
-
-      {/* Mini Radar Map - Floats top right under buttons */}
-      {renderMiniMap()}
 
       {/* Entity Glitch Warning Overlay */}
       {entityDistance < 8 && (
@@ -2344,32 +2311,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         </div>
       )}
 
-      {/* Floating System HUD message terminal screen at bottom center */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-sm bg-black/85 border border-green-500/30 p-2 font-mono text-[9px] md:text-[10px] text-green-400 rounded shadow-lg flex flex-col gap-1.5 items-center leading-tight z-30 pointer-events-auto">
-        <div className="flex items-center gap-1 text-[8px] md:text-[9px] text-green-500/70 border-b border-green-500/10 pb-0.5 w-full justify-center">
-          <Radio className="w-3 h-3 text-green-400 animate-pulse" />
-          <span>RADAR_TELEMETRY</span>
-        </div>
-        <div className="w-full text-center text-green-400/90 select-none uppercase font-semibold text-[8px] md:text-[9px] line-clamp-2 min-h-[22px] flex items-center justify-center">
-          {hudMessage}
-        </div>
-        
-        {(activeItemNear || activeDoorNear) && (
-          <button
-            onClick={() => {
-              if (activeItemNear) {
-                onItemFound(activeItemNear.id);
-              } else if (activeDoorNear) {
-                activeDoorNear.isOpen = !activeDoorNear.isOpen;
-                Synthesizer.triggerEntityGlitch();
-              }
-            }}
-            className="w-full bg-green-500 hover:bg-green-600 text-black px-2 py-0.5 rounded text-[8px] md:text-[9px] font-extrabold transition animate-bounce shadow-[0_0_8px_rgba(34,197,94,0.3)] mt-0.5"
-          >
-            {activeItemNear ? 'SEARCH OBJECT [E]' : activeDoorNear.isOpen ? 'CLOSE DOOR [E]' : 'OPEN DOOR [E]'}
-          </button>
-        )}
-      </div>
+
 
       {/* Touch Screen Joystick (unconditionally rendered, hidden on desktop via CSS) */}
       <div 
