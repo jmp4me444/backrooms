@@ -2178,6 +2178,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (!containerRef.current || !cameraRef.current || !rendererRef.current) return;
       const w = containerRef.current.clientWidth;
       const h = containerRef.current.clientHeight;
+      
+      // Prevent recursive layout resize loops by checking if dimensions actually changed
+      const currentSize = new THREE.Vector2();
+      rendererRef.current.getSize(currentSize);
+      if (Math.abs(currentSize.x - w) < 1 && Math.abs(currentSize.y - h) < 1) {
+        return;
+      }
+      
       cameraRef.current.aspect = w / h;
       cameraRef.current.updateProjectionMatrix();
       rendererRef.current.setSize(w, h);
