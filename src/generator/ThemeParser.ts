@@ -130,7 +130,7 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
   // New categories
   const hasTropical = words.some(w => ['tropical', 'beach', 'sand', 'palm', 'jungle', 'bamboo', 'summer', 'hawaii', 'island', 'oasis', 'coconut', 'exotic'].includes(w));
   const hasLava = words.some(w => ['lava', 'magma', 'volcano', 'fire', 'hell', 'burning', 'hot', 'flames', 'coals', 'inferno'].includes(w));
-  const hasSnow = words.some(w => ['snow', 'ice', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost'].includes(w));
+  const hasSnow = words.some(w => ['snow', 'ice', 'icy', 'icey', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost'].includes(w));
   const hasDesert = words.some(w => ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid'].includes(w));
   const hasGold = words.some(w => ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable'].includes(w));
 
