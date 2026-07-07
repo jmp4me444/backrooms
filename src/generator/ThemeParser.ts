@@ -550,3 +550,81 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
 
   return { theme, dossier, items };
 };
+
+export const checkStaticMatch = (query: string): boolean => {
+  const cleanQuery = query.toLowerCase().trim();
+  const words = cleanQuery.split(/[\s,]+/);
+
+  const METAL_KEYWORDS = ['metal', 'industrial', 'pipe', 'pipes', 'rusty', 'iron', 'factory', 'machinery', 'engine', 'boiler', 'metallic', 'steel', 'brass', 'copper', 'bronze', 'welded', 'mechanical', 'dirty', 'greasy', 'sooty', 'steam', 'exhaust', 'forged', 'manufactured', 'machined'];
+  const WATER_KEYWORDS = ['water', 'pool', 'pools', 'damp', 'flooded', 'submerged', 'wet', 'swimming', 'drip', 'dripping', 'liquid', 'aquatic', 'watery', 'rainy', 'soaked', 'soggy', 'moist', 'drenched', 'ocean', 'sea', 'fluid', 'hydro', 'subaquatic', 'splash', 'splashing', 'misty', 'vapor', 'steamy'];
+  const DARK_KEYWORDS = ['dark', 'night', 'shadow', 'shadows', 'creepy', 'scary', 'dim', 'black', 'spooky', 'void', 'pitch-black', 'obscure', 'gloomy', 'somber', 'eerie', 'sinister', 'ghastly', 'haunted', 'nocturnal', 'abyssal', 'tenebrous', 'murky'];
+  const STERILE_KEYWORDS = ['sterile', 'hospital', 'medical', 'clinic', 'white', 'clean', 'laboratory', 'lab', 'dentist', 'hygienic', 'clinical', 'sanitized', 'surgical', 'bleached', 'pure', 'asylum', 'dental', 'disinfected', 'immaculate', 'spotless'];
+  const ARCADE_KEYWORDS = ['arcade', 'neon', 'game', 'play', 'synth', 'cyber', 'retro', 'computer', 'digital', 'glowing', 'electronic', 'futuristic', 'holographic', 'pixelated', 'pixel', 'vaporwave', 'techno', 'electric', 'flashing'];
+  const NATURE_KEYWORDS = ['nature', 'forest', 'moss', 'green', 'garden', 'plants', 'wood', 'dirt', 'foliage', 'overgrown', 'botanical', 'grassy', 'verdant', 'lush', 'wild', 'forested', 'leafy'];
+  const ENTITY_KEYWORDS = ['entity', 'monster', 'ghost', 'scary', 'shadowy', 'haunted', 'lurker', 'beast', 'danger', 'hazard', 'hostile', 'deadly', 'creature', 'threat'];
+  const TROPICAL_KEYWORDS = ['tropical', 'beach', 'sand', 'palm', 'jungle', 'bamboo', 'summer', 'hawaii', 'island', 'oasis', 'coconut', 'exotic', 'sunny', 'warm', 'sandy', 'safari', 'equatorial'];
+  const LAVA_KEYWORDS = ['lava', 'magma', 'volcano', 'fire', 'hell', 'burning', 'hot', 'flames', 'coals', 'inferno', 'fiery', 'blazing', 'scorching', 'sizzling', 'scalded', 'scalding', 'sweltering', 'torrid', 'volcanic', 'thermal', 'igneous', 'molten', 'glowing-hot'];
+  const SNOW_KEYWORDS = ['snow', 'ice', 'icy', 'icey', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost', 'frigid', 'freezing', 'snowy', 'chilly', 'polar', 'glacial', 'gelid', 'wintry', 'frosty', 'subzero', 'boreal', 'hyperborean'];
+  const DESERT_KEYWORDS = ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid', 'barren', 'dry', 'dehydrated', 'wasted', 'ruined', 'decayed', 'decaying', 'antique', 'historical', 'archeological'];
+  const GOLD_KEYWORDS = ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'];
+
+  const allKeywords = [
+    ...METAL_KEYWORDS, ...WATER_KEYWORDS, ...DARK_KEYWORDS, ...STERILE_KEYWORDS,
+    ...ARCADE_KEYWORDS, ...NATURE_KEYWORDS, ...ENTITY_KEYWORDS, ...TROPICAL_KEYWORDS,
+    ...LAVA_KEYWORDS, ...SNOW_KEYWORDS, ...DESERT_KEYWORDS, ...GOLD_KEYWORDS
+  ];
+
+  return words.some(w => allKeywords.includes(w));
+};
+
+export const expandKeywordsWithDictionary = async (query: string): Promise<string> => {
+  const cleanQuery = query.toLowerCase().trim();
+  const words = cleanQuery.split(/[\s,]+/);
+
+  if (checkStaticMatch(query)) {
+    return query;
+  }
+
+  const stopwords = ['the', 'room', 'level', 'zone', 'sector', 'area', 'with', 'some', 'and', 'walls', 'floor', 'ceiling', 'hall', 'halls'];
+  const lookupWord = words.find(w => w.length > 3 && !stopwords.includes(w));
+
+  if (!lookupWord) return query;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+    const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${lookupWord}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) return query;
+
+    const data = await response.json();
+    if (!Array.isArray(data) || data.length === 0) return query;
+
+    const meaningsText: string[] = [];
+    data.forEach(entry => {
+      if (entry.meanings) {
+        entry.meanings.forEach((meaning: any) => {
+          if (meaning.definitions) {
+            meaning.definitions.forEach((def: any) => {
+              meaningsText.push(def.definition);
+              if (def.synonyms) {
+                meaningsText.push(...def.synonyms);
+              }
+            });
+          }
+          if (meaning.synonyms) {
+            meaningsText.push(...meaning.synonyms);
+          }
+        });
+      }
+    });
+
+    const expandedWords = meaningsText.join(' ').toLowerCase();
+    return `${query}, ${expandedWords}`;
+  } catch (error) {
+    console.warn('Runtime dictionary expansion skipped:', error);
+    return query;
+  }
+};

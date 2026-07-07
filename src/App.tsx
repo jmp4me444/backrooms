@@ -3,7 +3,7 @@ import { Shield, Volume2, VolumeX, Terminal, Database } from 'lucide-react';
 import { ThreeCanvas } from './components/ThreeCanvas';
 import { TerminalUI } from './components/TerminalUI';
 import { WikiDossier } from './components/WikiDossier';
-import { parseKeywords } from './generator/ThemeParser';
+import { parseKeywords, expandKeywordsWithDictionary } from './generator/ThemeParser';
 import Synthesizer from './audio/Synthesizer';
 import type { RoomTheme, LevelDossier, SearchableItem } from './types';
 
@@ -45,15 +45,18 @@ export default function App() {
     setHasInteracted(true);
   };
 
-  const handleSynthesis = (query: string) => {
+  const handleSynthesis = async (query: string) => {
     setIsLoading(true);
     setKeywords(query);
     setSearchQuery(query);
 
+    // Call async dictionary keyword expansion for unknown words at runtime
+    const expandedQuery = await expandKeywordsWithDictionary(query);
+
     // Simulate database scan and generation latency
     setTimeout(() => {
       const randomSeed = Math.random();
-      const { theme: generatedTheme, dossier: generatedDossier, items: generatedItems } = parseKeywords(query, randomSeed);
+      const { theme: generatedTheme, dossier: generatedDossier, items: generatedItems } = parseKeywords(expandedQuery, randomSeed);
       
       setTheme(generatedTheme);
       setDossier(generatedDossier);
