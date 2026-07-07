@@ -5,21 +5,28 @@
   box-sizing: border-box;
 }
 
-html, body {
+body {
   margin: 0;
   padding: 0;
   background-color: #0b0f0b;
   color: #10b981; /* Default matrix green */
   font-family: 'Inter', -apple-system, sans-serif;
-  overflow: hidden !important;
-  position: fixed !important;
-  width: 100% !important;
-  height: 100% !important;
-  touch-action: none !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Mobile-only scroll and zoom locks to prevent safari shift/scaling on drag */
+@media (hover: none) and (pointer: coarse) {
+  html, body {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
 }
 
 /* Custom Scrollbar for Retro terminal and wiki scrollboxes */
