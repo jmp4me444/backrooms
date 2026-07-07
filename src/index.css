@@ -141,7 +141,7 @@ body {
 /* Touch screen joystick styling (Left side only) */
 .touch-joystick-base {
   position: absolute !important;
-  bottom: 144px !important; /* bottom-36 */
+  bottom: 220px !important;
   left: 24px !important; /* left-6 */
   z-index: 40 !important;
   width: 80px !important; /* w-20 */
