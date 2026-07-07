@@ -22,7 +22,6 @@ body {
     overflow: hidden !important;
     width: 100% !important;
     height: 100% !important;
-    touch-action: none !important;
     user-select: none !important;
     -webkit-user-select: none !important;
   }
@@ -192,6 +191,7 @@ canvas {
   width: 100% !important;
   height: 100% !important;
   display: block !important;
+  touch-action: none !important; /* Lock double-tap zoom and pan gestures only on the game view */
 }
 
 /* Allow vertical touch scrolling inside scrollable containers (like dossiers/logs) */
