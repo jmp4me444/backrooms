@@ -625,6 +625,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Left Joystick Touch Handlers (Move)
   const handleLeftTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     if (e.changedTouches.length > 0) {
       const touch = e.changedTouches[0];
       joyLeftTouch.current = {
@@ -641,6 +644,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   const handleLeftTouchMove = (e: React.TouchEvent) => {
     e.stopPropagation();
+    if (e.cancelable) {
+      e.preventDefault();
+    }
     if (!joyLeftTouch.current.active) return;
     
     // Track the correct touch by its unique pointer identifier safely using a for loop
