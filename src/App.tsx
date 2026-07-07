@@ -160,8 +160,8 @@ export default function App() {
           </button>
 
           <div className="w-full flex flex-col gap-2">
-            <span className="text-[9px] text-green-500/50 uppercase tracking-widest select-none font-bold">
-              [ INITIAL_THEME_SELECTION ]
+            <span className="text-[9px] text-green-500/60 uppercase tracking-wider select-none font-bold">
+              TYPE YOUR DESIRED THEME IN THE BOX BELOW
             </span>
             <input
               type="text"
