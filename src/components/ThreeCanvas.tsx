@@ -549,6 +549,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (target && typeof target.closest === 'function' && target.closest('.touch-joystick-base')) {
         return;
       }
+      e.preventDefault(); // Prevent Chrome/Safari mobile page-scrolling and default gestures
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
@@ -564,6 +565,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     const handleTouchMove = (e: TouchEvent) => {
       if (lookTouchId === -1 || !touchStartRef.current) return;
+      e.preventDefault(); // Prevent default Chrome mobile pull-to-refresh or navigation swipes
       
       // Find the look touch by identifier
       let touch = null;
@@ -604,9 +606,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     canvas.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mousemove', handleMouseMove);
     window.addEventListener('mouseup', handleMouseUpOrLeave);
-    canvas.addEventListener('touchstart', handleTouchStart);
-    canvas.addEventListener('touchmove', handleTouchMove);
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     canvas.addEventListener('touchend', handleTouchEnd);
+    canvas.addEventListener('touchcancel', handleTouchEnd);
 
     return () => {
       canvas.removeEventListener('mousedown', handleMouseDown);
@@ -615,6 +618,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       canvas.removeEventListener('touchstart', handleTouchStart);
       canvas.removeEventListener('touchmove', handleTouchMove);
       canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
     };
   }, []);
 
