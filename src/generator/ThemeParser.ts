@@ -119,20 +119,21 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
   };
 
   // Keyword categories
-  const hasMetal = words.some(w => ['metal', 'industrial', 'pipe', 'pipes', 'rusty', 'iron', 'factory', 'machinery', 'engine', 'boiler'].includes(w));
-  const hasWater = words.some(w => ['water', 'pool', 'pools', 'damp', 'flooded', 'submerged', 'wet', 'swimming', 'drip', 'dripping', 'liquid'].includes(w));
-  const hasDark = words.some(w => ['dark', 'night', 'shadow', 'shadows', 'creepy', 'scary', 'dim', 'black', 'spooky', 'void'].includes(w));
-  const hasSterile = words.some(w => ['sterile', 'hospital', 'medical', 'clinic', 'white', 'clean', 'laboratory', 'lab', 'dentist'].includes(w));
-  const hasArcade = words.some(w => ['arcade', 'neon', 'game', 'play', 'synth', 'cyber', 'retro', 'computer', 'digital'].includes(w));
-  const hasNature = words.some(w => ['nature', 'forest', 'moss', 'green', 'garden', 'plants', 'wood', 'dirt', 'foliage', 'overgrown'].includes(w));
-  const hasEntity = words.some(w => ['entity', 'monster', 'ghost', 'scary', 'shadowy', 'haunted', 'lurker', 'beast', 'danger', 'hazard', 'hostile'].includes(w));
+  // Keyword categories with extensive dictionary adjectives
+  const hasMetal = words.some(w => ['metal', 'industrial', 'pipe', 'pipes', 'rusty', 'iron', 'factory', 'machinery', 'engine', 'boiler', 'metallic', 'steel', 'brass', 'copper', 'bronze', 'welded', 'mechanical', 'dirty', 'greasy', 'sooty', 'steam', 'exhaust', 'forged', 'manufactured', 'machined'].includes(w));
+  const hasWater = words.some(w => ['water', 'pool', 'pools', 'damp', 'flooded', 'submerged', 'wet', 'swimming', 'drip', 'dripping', 'liquid', 'aquatic', 'watery', 'rainy', 'soaked', 'soggy', 'moist', 'drenched', 'ocean', 'sea', 'fluid', 'hydro', 'subaquatic', 'splash', 'splashing', 'misty', 'vapor', 'steamy'].includes(w));
+  const hasDark = words.some(w => ['dark', 'night', 'shadow', 'shadows', 'creepy', 'scary', 'dim', 'black', 'spooky', 'void', 'pitch-black', 'obscure', 'gloomy', 'somber', 'eerie', 'sinister', 'ghastly', 'haunted', 'nocturnal', 'abyssal', 'tenebrous', 'murky'].includes(w));
+  const hasSterile = words.some(w => ['sterile', 'hospital', 'medical', 'clinic', 'white', 'clean', 'laboratory', 'lab', 'dentist', 'hygienic', 'clinical', 'sanitized', 'surgical', 'bleached', 'pure', 'asylum', 'dental', 'disinfected', 'immaculate', 'spotless'].includes(w));
+  const hasArcade = words.some(w => ['arcade', 'neon', 'game', 'play', 'synth', 'cyber', 'retro', 'computer', 'digital', 'glowing', 'electronic', 'futuristic', 'holographic', 'pixelated', 'pixel', 'vaporwave', 'techno', 'electric', 'flashing'].includes(w));
+  const hasNature = words.some(w => ['nature', 'forest', 'moss', 'green', 'garden', 'plants', 'wood', 'dirt', 'foliage', 'overgrown', 'botanical', 'grassy', 'verdant', 'lush', 'wild', 'forested', 'leafy'].includes(w));
+  const hasEntity = words.some(w => ['entity', 'monster', 'ghost', 'scary', 'shadowy', 'haunted', 'lurker', 'beast', 'danger', 'hazard', 'hostile', 'deadly', 'creature', 'threat'].includes(w));
   
   // New categories
-  const hasTropical = words.some(w => ['tropical', 'beach', 'sand', 'palm', 'jungle', 'bamboo', 'summer', 'hawaii', 'island', 'oasis', 'coconut', 'exotic'].includes(w));
-  const hasLava = words.some(w => ['lava', 'magma', 'volcano', 'fire', 'hell', 'burning', 'hot', 'flames', 'coals', 'inferno'].includes(w));
-  const hasSnow = words.some(w => ['snow', 'ice', 'icy', 'icey', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost'].includes(w));
-  const hasDesert = words.some(w => ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid'].includes(w));
-  const hasGold = words.some(w => ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable'].includes(w));
+  const hasTropical = words.some(w => ['tropical', 'beach', 'sand', 'palm', 'jungle', 'bamboo', 'summer', 'hawaii', 'island', 'oasis', 'coconut', 'exotic', 'sunny', 'warm', 'sandy', 'safari', 'equatorial'].includes(w));
+  const hasLava = words.some(w => ['lava', 'magma', 'volcano', 'fire', 'hell', 'burning', 'hot', 'flames', 'coals', 'inferno', 'fiery', 'blazing', 'scorching', 'sizzling', 'scalded', 'scalding', 'sweltering', 'torrid', 'volcanic', 'thermal', 'igneous', 'molten', 'glowing-hot'].includes(w));
+  const hasSnow = words.some(w => ['snow', 'ice', 'icy', 'icey', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost', 'frigid', 'freezing', 'snowy', 'chilly', 'polar', 'glacial', 'gelid', 'wintry', 'frosty', 'subzero', 'boreal', 'hyperborean'].includes(w));
+  const hasDesert = words.some(w => ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid', 'barren', 'dry', 'dehydrated', 'wasted', 'ruined', 'decayed', 'decaying', 'antique', 'historical', 'archeological'].includes(w));
+  const hasGold = words.some(w => ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'].includes(w));
 
   // Determine dominant theme
   if (hasMetal) {
