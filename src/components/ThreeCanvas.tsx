@@ -546,7 +546,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
-      if (target && target.closest('.touch-joystick-base')) {
+      if (target && typeof target.closest === 'function' && target.closest('.touch-joystick-base')) {
         return;
       }
       if (document.activeElement instanceof HTMLElement) {

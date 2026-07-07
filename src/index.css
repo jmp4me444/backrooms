@@ -18,9 +18,8 @@ body {
 
 /* Mobile-only scroll and zoom locks to prevent safari shift/scaling on drag */
 @media (hover: none) and (pointer: coarse) {
-  html, body {
+  html, body, #root {
     overflow: hidden !important;
-    position: fixed !important;
     width: 100% !important;
     height: 100% !important;
     touch-action: none !important;
