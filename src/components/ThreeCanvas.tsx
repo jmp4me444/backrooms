@@ -55,7 +55,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Joystick DOM and state tracking refs
   const leftKnobRef = useRef<HTMLDivElement>(null);
   const rightKnobRef = useRef<HTMLDivElement>(null);
-  const joyLeftTouch = useRef<{ startX: number; startY: number; active: boolean }>({ startX: 0, startY: 0, active: false });
+  const joyLeftTouch = useRef<{ startX: number; startY: number; active: boolean; identifier: number }>({ startX: 0, startY: 0, active: false, identifier: -1 });
   const joyRightTouch = useRef<{ startX: number; startY: number; active: boolean }>({ startX: 0, startY: 0, active: false });
   const joyRightOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -541,23 +541,40 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       isDraggingRef.current = false;
     };
 
-    // Mobile Touch Controls (Swipe to Look)
+    // Mobile Touch Controls (Swipe to Look) - Pointer Isolated
+    let lookTouchId = -1;
+
     const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.closest('.touch-joystick-base')) {
+        return;
+      }
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
-      if (e.touches.length > 0) {
+      if (e.changedTouches.length > 0) {
+        const touch = e.changedTouches[0];
+        lookTouchId = touch.identifier;
         touchStartRef.current = {
-          x: e.touches[0].clientX,
-          y: e.touches[0].clientY,
+          x: touch.clientX,
+          y: touch.clientY,
         };
       }
     };
 
     const handleTouchMove = (e: TouchEvent) => {
-      if (!touchStartRef.current || e.touches.length === 0) return;
+      if (lookTouchId === -1 || !touchStartRef.current) return;
       
-      const touch = e.touches[0];
+      // Find the look touch by identifier
+      let touch = null;
+      for (let i = 0; i < e.touches.length; i++) {
+        if (e.touches[i].identifier === lookTouchId) {
+          touch = e.touches[i];
+          break;
+        }
+      }
+      if (!touch) return;
+      
       const deltaX = touch.clientX - touchStartRef.current.x;
       const deltaY = touch.clientY - touchStartRef.current.y;
       
@@ -574,8 +591,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       };
     };
 
-    const handleTouchEnd = () => {
-      touchStartRef.current = null;
+    const handleTouchEnd = (e: TouchEvent) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === lookTouchId) {
+          lookTouchId = -1;
+          touchStartRef.current = null;
+          break;
+        }
+      }
     };
 
     canvas.addEventListener('mousedown', handleMouseDown);
@@ -598,11 +621,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   // Left Joystick Touch Handlers (Move)
   const handleLeftTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation();
-    if (e.touches.length > 0) {
+    if (e.changedTouches.length > 0) {
+      const touch = e.changedTouches[0];
       joyLeftTouch.current = {
-        startX: e.touches[0].clientX,
-        startY: e.touches[0].clientY,
-        active: true
+        startX: touch.clientX,
+        startY: touch.clientY,
+        active: true,
+        identifier: touch.identifier
       };
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
@@ -612,8 +637,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
   const handleLeftTouchMove = (e: React.TouchEvent) => {
     e.stopPropagation();
-    if (!joyLeftTouch.current.active || e.touches.length === 0) return;
-    const touch = e.touches[0];
+    if (!joyLeftTouch.current.active) return;
+    
+    // Track the correct touch by its unique pointer identifier safely using a for loop
+    let touch = null;
+    for (let i = 0; i < e.touches.length; i++) {
+      if (e.touches[i].identifier === joyLeftTouch.current.identifier) {
+        touch = e.touches[i];
+        break;
+      }
+    }
+    if (!touch) return;
+    
     let dx = touch.clientX - joyLeftTouch.current.startX;
     let dy = touch.clientY - joyLeftTouch.current.startY;
     
@@ -637,6 +672,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const handleLeftTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation();
     joyLeftTouch.current.active = false;
+    joyLeftTouch.current.identifier = -1;
     if (leftKnobRef.current) {
       leftKnobRef.current.style.transform = 'translate(0px, 0px)';
     }
@@ -2315,6 +2351,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             {activeItemNear ? 'SEARCH OBJECT [E]' : activeDoorNear.isOpen ? 'CLOSE DOOR [E]' : 'OPEN DOOR [E]'}
           </button>
         )}
+      </div>
+
+      {/* Touch Screen Joystick (unconditionally rendered, hidden on desktop via CSS) */}
+      <div 
+        className="touch-joystick-base"
+        onTouchStart={handleLeftTouchStart}
+        onTouchMove={handleLeftTouchMove}
+        onTouchEnd={handleLeftTouchEnd}
+      >
+        <div ref={leftKnobRef} className="touch-joystick-knob" />
       </div>
     </div>
   );

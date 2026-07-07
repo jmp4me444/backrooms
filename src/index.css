@@ -137,3 +137,47 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+/* Touch screen joystick styling (Left side only) */
+.touch-joystick-base {
+  position: absolute !important;
+  bottom: 144px !important; /* bottom-36 */
+  left: 24px !important; /* left-6 */
+  z-index: 40 !important;
+  width: 80px !important; /* w-20 */
+  height: 80px !important; /* h-20 */
+  border-radius: 9999px !important; /* rounded-full */
+  border: 1px solid rgba(16, 185, 129, 0.3) !important; /* border border-green-500/30 */
+  background-color: rgba(0, 0, 0, 0.65) !important; /* bg-black/65 */
+  backdrop-filter: blur(4px) !important; /* backdrop-blur-sm */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  user-select: none !important;
+  touch-action: none !important;
+}
+
+/* Hide on desktop screens (>= 1024px width) */
+@media (min-width: 1024px) {
+  .touch-joystick-base {
+    display: none !important;
+  }
+}
+
+.touch-joystick-knob {
+  width: 32px !important; /* w-8 */
+  height: 32px !important; /* h-8 */
+  border-radius: 9999px !important; /* rounded-full */
+  background-color: rgba(16, 185, 129, 0.45) !important; /* bg-green-500/45 */
+  border: 1px solid rgba(16, 185, 129, 0.7) !important; /* border-green-500/70 */
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3) !important; /* shadow-[0_0_12px_rgba(16,185,129,0.3)] */
+  transition: transform 0.075s ease-out !important;
+  pointer-events: none !important;
+}
+
+/* Strict canvas size overlay rules */
+canvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block !important;
+}
