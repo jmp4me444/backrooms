@@ -224,6 +224,7 @@ export default function App() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
+              onBlur={() => window.scrollTo(0, 0)}
               placeholder="pools, industrial, snowy office..."
               disabled={isLoading}
               className="flex-1 bg-transparent text-green-400 placeholder-green-500/25 outline-none font-mono text-xs"

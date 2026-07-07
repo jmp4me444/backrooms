@@ -16,12 +16,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Mobile-only scroll and zoom locks to prevent safari shift/scaling on drag */
 @media (hover: none) and (pointer: coarse) {
   html, body, #root {
     overflow: hidden !important;
     width: 100% !important;
     height: 100% !important;
+    height: 100dvh !important;
     user-select: none !important;
     -webkit-user-select: none !important;
   }
@@ -198,3 +198,10 @@ canvas {
 .overflow-y-auto, .overflow-auto, [class*="overflow-y-"] {
   touch-action: pan-y !important;
 }
+
+/* Layout Utilities (replacing Tailwind layout helper defaults) */
+.w-screen { width: 100vw !important; }
+.h-screen { height: 100vh !important; height: 100dvh !important; }
+.w-full { width: 100% !important; }
+.h-full { height: 100% !important; }
+.flex-1 { flex: 1 1 0% !important; }

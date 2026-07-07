@@ -181,6 +181,7 @@ export const TerminalUI: React.FC<TerminalUIProps> = ({ onGenerate, isLoading })
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
+          onBlur={() => window.scrollTo(0, 0)}
           disabled={isLoading}
           placeholder={isLoading ? 'Computing matrix...' : 'Type keywords or commands here...'}
           className="flex-1 bg-black border border-green-500/30 px-3 py-1.5 rounded text-green-400 placeholder-green-500/30 outline-none focus:border-green-500/60 focus:ring-1 focus:ring-green-500/40 text-xs shadow-inner"
