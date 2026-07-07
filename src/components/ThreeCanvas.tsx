@@ -2004,7 +2004,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (dist < minDoorDist) {
           minDoorDist = dist;
           nearestDoor = door;
-          if (dist < 2.0 && !door.isOpen) {
+          if (dist < 2.8 && !door.isOpen) {
             door.isOpen = true;
             Synthesizer.triggerEntityGlitch();
           }
