@@ -154,10 +154,26 @@ export default function App() {
 
           <button
             onClick={handleBoot}
-            className="w-full bg-green-500 hover:bg-green-600 text-black font-extrabold uppercase py-3 rounded text-sm tracking-wider transition shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse"
+            className="w-full bg-green-500 hover:bg-green-600 text-black font-extrabold uppercase py-3 rounded text-sm tracking-wider transition shadow-[0_0_15px_rgba(16,185,129,0.3)] animate-pulse mb-5"
           >
             BOOT SENSORY TERMINAL
           </button>
+
+          <div className="w-full flex flex-col gap-2">
+            <span className="text-[9px] text-green-500/50 uppercase tracking-widest select-none font-bold">
+              [ INITIAL_THEME_SELECTION ]
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => {
+                setSearchQuery(e.target.value);
+                setKeywords(e.target.value);
+              }}
+              placeholder="pools, jungle, hospital, snowy office..."
+              className="w-full bg-black border border-green-500/35 px-3 py-2.5 rounded text-green-400 placeholder-green-500/25 outline-none focus:border-green-500/70 font-mono text-xs text-center shadow-inner"
+            />
+          </div>
         </div>
       </div>
     );
