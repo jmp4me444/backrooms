@@ -6,6 +6,7 @@ import { WikiDossier } from './components/WikiDossier';
 import { parseKeywords, expandKeywordsWithDictionary } from './generator/ThemeParser';
 import Synthesizer from './audio/Synthesizer';
 import type { RoomTheme, LevelDossier, SearchableItem } from './types';
+import vaultGateImg from './assets/vault_gate.jpg';
 
 const PRESET_THEMES = [
   { label: 'Yellow Lobby', query: 'yellow walls, office, hum' },
@@ -315,7 +316,7 @@ export default function App() {
       >
         <div className="relative w-[90%] max-w-xl aspect-[1.2] rounded border border-green-500/25 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.95)] bg-black">
           <img 
-            src="vault_gate.jpg" 
+            src={vaultGateImg} 
             alt="M.E.G. Staging Entrance" 
             className="w-full h-full object-cover brightness-[0.7] contrast-[1.1] saturate-[0.9]"
           />
