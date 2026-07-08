@@ -503,6 +503,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
       }
+    } else if (type === 'matrix') {
+      // Matrix falling binary code
+      ctx.fillStyle = '#030603';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#00ff66';
+      ctx.font = '9px Courier New, monospace';
+      for (let i = 0; i < size; i += 16) {
+        for (let j = 0; j < size; j += 10) {
+          const char = Math.random() > 0.5 ? '1' : '0';
+          ctx.fillText(char, i, j);
+        }
+      }
     }
 
     const texture = new THREE.CanvasTexture(canvas);

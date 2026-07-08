@@ -135,6 +135,7 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
   const hasDesert = words.some(w => ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid', 'barren', 'dry', 'dehydrated', 'wasted', 'ruined', 'decayed', 'decaying', 'antique', 'historical', 'archeological'].includes(w));
   const hasGold = words.some(w => ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'].includes(w));
   const hasCircus = words.some(w => ['circus', 'carnival', 'clown', 'tent', 'fair', 'fairground', 'carousel', 'funhouse', 'jester'].includes(w));
+  const hasMatrix = words.some(w => ['matrix', 'code', 'binary', 'digital', 'neo', 'simulation', 'mainframe'].includes(w));
 
   // Determine dominant theme
   if (hasMetal) {
@@ -249,6 +250,20 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     theme.fogDensity = 0.07;
     theme.props = ['column', 'puddle', 'cabinet'];
     theme.entitySpawnChance = 0.45;
+  } else if (hasMatrix) {
+    theme.name = 'Level M: The Matrix Core';
+    theme.wallColor = '#050906';
+    theme.floorColor = '#020402';
+    theme.ceilingColor = '#050906';
+    theme.wallTexture = 'matrix';
+    theme.floorTexture = 'concrete';
+    theme.ceilingTexture = 'concrete';
+    theme.lightingStyle = 'misty'; // green matrix glow
+    theme.ambientSound = 'static'; // mainframe hum
+    theme.fogColor = '#020502';
+    theme.fogDensity = 0.06;
+    theme.props = ['column', 'vent'];
+    theme.entitySpawnChance = 0.25;
   } else if (hasSterile) {
     theme.name = 'Sterile Ward';
     theme.wallColor = '#e3eef0'; // clinical pale blue-white
@@ -579,11 +594,13 @@ export const checkStaticMatch = (query: string): boolean => {
   const DESERT_KEYWORDS = ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid', 'barren', 'dry', 'dehydrated', 'wasted', 'ruined', 'decayed', 'decaying', 'antique', 'historical', 'archeological'];
   const GOLD_KEYWORDS = ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'];
   const CIRCUS_KEYWORDS = ['circus', 'carnival', 'clown', 'tent', 'fair', 'fairground', 'carousel', 'funhouse', 'jester'];
+  const MATRIX_KEYWORDS = ['matrix', 'code', 'binary', 'digital', 'neo', 'simulation', 'mainframe'];
 
   const allKeywords = [
     ...METAL_KEYWORDS, ...WATER_KEYWORDS, ...DARK_KEYWORDS, ...STERILE_KEYWORDS,
     ...ARCADE_KEYWORDS, ...NATURE_KEYWORDS, ...ENTITY_KEYWORDS, ...TROPICAL_KEYWORDS,
-    ...LAVA_KEYWORDS, ...SNOW_KEYWORDS, ...DESERT_KEYWORDS, ...GOLD_KEYWORDS, ...CIRCUS_KEYWORDS
+    ...LAVA_KEYWORDS, ...SNOW_KEYWORDS, ...DESERT_KEYWORDS, ...GOLD_KEYWORDS, ...CIRCUS_KEYWORDS,
+    ...MATRIX_KEYWORDS
   ];
 
   return words.some(w => allKeywords.includes(w));

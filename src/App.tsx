@@ -18,7 +18,8 @@ const PRESET_THEMES = [
   { label: 'Boiler Lava Room', query: 'lava' },
   { label: 'Dusty Ruins', query: 'desert' },
   { label: 'Neon Arcade', query: 'arcade' },
-  { label: 'Dark Void', query: 'dark' }
+  { label: 'Dark Void', query: 'dark' },
+  { label: 'Matrix Core', query: 'matrix' }
 ];
 
 export default function App() {
