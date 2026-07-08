@@ -310,24 +310,87 @@ export default function App() {
 
       {/* Cinematic Splash Loading Screen showing the Vault Gate */}
       <div 
-        className={`fixed inset-0 z-40 bg-[#060a06] flex flex-col items-center justify-center transition-opacity duration-1000 select-none ${
-          showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          zIndex: 9999, // ensures it sits on top of 3D Canvas
+          backgroundColor: '#060a06',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'opacity 1.0s ease-in-out',
+          opacity: showSplash ? 1.0 : 0.0,
+          pointerEvents: showSplash ? 'auto' : 'none',
+          userSelect: 'none'
+        }}
       >
-        <div className="relative w-[90%] max-w-xl aspect-[1.2] rounded border border-green-500/25 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.95)] bg-black">
+        <div 
+          style={{
+            position: 'relative',
+            width: '90%',
+            maxWidth: '560px',
+            aspectRatio: '1.2',
+            borderRadius: '6px',
+            border: '1px solid rgba(16, 185, 129, 0.25)',
+            overflow: 'hidden',
+            boxShadow: '0 0 50px rgba(0, 0, 0, 0.95)',
+            backgroundColor: '#000000'
+          }}
+        >
           <img 
             src={vaultGateImg} 
             alt="M.E.G. Staging Entrance" 
-            className="w-full h-full object-cover brightness-[0.7] contrast-[1.1] saturate-[0.9]"
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              filter: 'brightness(0.7) contrast(1.1) saturate(0.9)'
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+          <div 
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
+              pointerEvents: 'none'
+            }}
+          />
           
-          <div className="absolute bottom-4 left-4 font-mono text-[9px] text-green-400/90 bg-black/85 px-2.5 py-1.5 border border-green-500/20 rounded shadow-md uppercase tracking-widest animate-pulse">
+          <div 
+            className="animate-pulse"
+            style={{
+              position: 'absolute',
+              bottom: '16px',
+              left: '16px',
+              fontFamily: 'monospace',
+              fontSize: '9px',
+              color: '#10b981',
+              backgroundColor: 'rgba(0, 0, 0, 0.85)',
+              padding: '6px 10px',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              borderRadius: '4px',
+              letterSpacing: '0.1em'
+            }}
+          >
             M.E.G. GATEWAY: INGRESS IN PROGRESS...
           </div>
         </div>
         
-        <div className="mt-5 font-mono text-[10px] text-green-500/70 tracking-widest uppercase animate-pulse">
+        <div 
+          className="animate-pulse"
+          style={{
+            marginTop: '20px',
+            fontFamily: 'monospace',
+            fontSize: '10px',
+            color: 'rgba(16, 185, 129, 0.7)',
+            letterSpacing: '0.25em',
+            textTransform: 'uppercase'
+          }}
+        >
           SYNCHRONIZING DIMENSIONAL LAYOUT... PLEASE WAIT
         </div>
       </div>
