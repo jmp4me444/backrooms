@@ -7,6 +7,20 @@ import { parseKeywords, expandKeywordsWithDictionary } from './generator/ThemePa
 import Synthesizer from './audio/Synthesizer';
 import type { RoomTheme, LevelDossier, SearchableItem } from './types';
 
+const PRESET_THEMES = [
+  { label: 'Yellow Lobby', query: 'yellow walls, office, hum' },
+  { label: 'Jungle Oasis', query: 'jungle' },
+  { label: 'Sterile Hospital', query: 'hospital' },
+  { label: 'Industrial Pipes', query: 'industrial' },
+  { label: 'Frozen Archive', query: 'icey room' },
+  { label: 'Funhouse Circus', query: 'circus' },
+  { label: 'Golden Palace', query: 'gold' },
+  { label: 'Boiler Lava Room', query: 'lava' },
+  { label: 'Dusty Ruins', query: 'desert' },
+  { label: 'Neon Arcade', query: 'arcade' },
+  { label: 'Dark Void', query: 'dark' }
+];
+
 export default function App() {
   const [hasInteracted, setHasInteracted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -173,10 +187,40 @@ export default function App() {
 
           <button
             onClick={handleBoot}
-            className="w-full bg-white hover:bg-neutral-200 text-black font-extrabold uppercase py-3 rounded text-sm tracking-widest transition shadow-[0_0_15px_rgba(255,255,255,0.4)]"
+            className="w-full bg-white hover:bg-neutral-200 text-black font-extrabold uppercase py-3 rounded text-sm tracking-widest transition shadow-[0_0_15px_rgba(255,255,255,0.4)] mb-4 shrink-0"
           >
             BOOT
           </button>
+
+          <div className="w-full flex flex-col gap-2 shrink-0">
+            <span className="text-[9px] text-green-500/50 uppercase tracking-widest select-none font-bold">
+              [ QUICK PRESETS ]
+            </span>
+            <div className="grid grid-cols-2 gap-2 text-left max-h-[150px] overflow-y-auto pr-1 custom-scrollbar">
+              {PRESET_THEMES.map(themeOption => {
+                const isSelected = searchQuery === themeOption.query || (themeOption.query === 'yellow walls, office, hum' && searchQuery.includes('yellow walls'));
+                return (
+                  <label 
+                    key={themeOption.label}
+                    className={`flex items-center gap-2 p-2 rounded border border-green-500/20 bg-black/40 hover:bg-green-500/5 cursor-pointer transition text-[9px] font-mono select-none ${
+                      isSelected ? 'border-green-500/80 bg-green-500/10 text-green-400 font-semibold shadow-[0_0_8px_rgba(16,185,129,0.15)]' : 'text-green-500/50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {
+                        setSearchQuery(themeOption.query);
+                        setKeywords(themeOption.query);
+                      }}
+                      className="w-3.5 h-3.5 accent-green-500 cursor-pointer rounded border-green-500/30"
+                    />
+                    <span>{themeOption.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     );
