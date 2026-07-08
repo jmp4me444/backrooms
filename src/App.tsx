@@ -398,6 +398,7 @@ export default function App() {
             SYNCHRONIZING DIMENSIONAL LAYOUT... PLEASE WAIT
           </div>
         </div>
+      </div>
 
       {/* Retro CRT Scanline Flickers and Vignettes */}
       <div className="pointer-events-none fixed inset-0 z-50 bg-scanlines opacity-[0.03]" />
