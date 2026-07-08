@@ -542,11 +542,7 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     item.position = [valX, 0.3, valZ];
   });
 
-  // Apply seed-based color scheme modulation for doors/staircase traversal transitions!
-  theme.wallColor = shiftColorHue(theme.wallColor, seed);
-  theme.floorColor = shiftColorHue(theme.floorColor, seed);
-  theme.ceilingColor = shiftColorHue(theme.ceilingColor, seed);
-  theme.fogColor = shiftColorHue(theme.fogColor, seed);
+
 
   return { theme, dossier, items };
 };
