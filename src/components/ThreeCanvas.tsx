@@ -2248,26 +2248,41 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           camera.position.z = testZ;
         }
 
-        camera.position.y = 1.6; // lock player height
+        const px = Math.round(camera.position.x / CELL_SIZE);
+        const pz = Math.round(camera.position.z / CELL_SIZE);
+        let targetY = 1.6;
+        if (px >= 0 && px < MAP_SIZE && pz >= 0 && pz < MAP_SIZE) {
+          if (grid[px][pz] === 4) {
+            const cellZ = pz * CELL_SIZE;
+            const relZ = camera.position.z - cellZ;
+            const t = (relZ + CELL_SIZE / 2) / CELL_SIZE;
+            const stairClimb = Math.max(0, Math.min(1, t)) * 3.5;
+            targetY = 1.6 + stairClimb;
+          }
+        }
+        camera.position.y = targetY; // lock player height or follow stair slope
       }
 
       setPlayerPos({ x: camera.position.x, z: camera.position.z });
 
-      // Check if player goes through an open door or stairs cell to generate a new room level!
+      // Check if player goes through an open door, stairs (near the top), or windows to generate a new level
       const px = Math.round(camera.position.x / CELL_SIZE);
       const pz = Math.round(camera.position.z / CELL_SIZE);
       if (px >= 0 && px < MAP_SIZE && pz >= 0 && pz < MAP_SIZE) {
         if (grid[px][pz] === 3) {
           const door = doorsRef.current.find(d => d.x === px && d.z === pz);
           if (door && door.isOpen) {
-            // Trigger a level transition (triggers App.tsx to regenerate)
             onLevelTransition(Math.floor(Math.random() * 1000000));
           }
         } else if (grid[px][pz] === 4) {
-          // Walk up stairs to transition
-          onLevelTransition(Math.floor(Math.random() * 1000000));
+          // Walk up stairs to near the top (t > 0.85) to transition
+          const cellZ = pz * CELL_SIZE;
+          const relZ = camera.position.z - cellZ;
+          const t = (relZ + CELL_SIZE / 2) / CELL_SIZE;
+          if (t > 0.85) {
+            onLevelTransition(Math.floor(Math.random() * 1000000));
+          }
         } else if (grid[px][pz] === 5 || grid[px][pz] === 6) {
-          // Crawl through Wall Window (5) or fall through Floor Window (6) to transition!
           onLevelTransition(Math.floor(Math.random() * 1000000));
         }
       }
