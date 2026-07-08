@@ -889,39 +889,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       grid[MAP_SIZE - 3][MAP_SIZE - 3] = 4; // Fallback
     }
 
-    // Place exactly one Wall Window (5) in a walkable corridor next to a wall
-    let windowWallPlaced = false;
-    for (let offset = 0; offset < MAP_SIZE * MAP_SIZE; offset++) {
-      const idx = (offset + scanOffset + 17) % (MAP_SIZE * MAP_SIZE);
-      const x = Math.floor(idx / MAP_SIZE);
-      const z = idx % MAP_SIZE;
-      if (x > 1 && z > 1 && x < MAP_SIZE - 2 && z < MAP_SIZE - 2) {
-        if (grid[x][z] === 0 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
-          // Check for an adjacent wall segment
-          const hasWallAdj = (grid[x-1][z] === 1) || (grid[x+1][z] === 1) || (grid[x][z-1] === 1) || (grid[x][z+1] === 1);
-          if (hasWallAdj) {
-            grid[x][z] = 5; // Walkable corridor cell containing a Wall Window!
-            windowWallPlaced = true;
-            break;
-          }
-        }
-      }
-    }
+    // Place Wall Window (5) directly on the starting lobby left boundary for immediate visibility
+    grid[0][2] = 5;
 
-    // Place exactly one Floor Window (6) in a walkable corridor cell
-    let windowFloorPlaced = false;
-    for (let offset = 0; offset < MAP_SIZE * MAP_SIZE; offset++) {
-      const idx = (offset + scanOffset + 43) % (MAP_SIZE * MAP_SIZE);
-      const x = Math.floor(idx / MAP_SIZE);
-      const z = idx % MAP_SIZE;
-      if (x > 1 && z > 1 && x < MAP_SIZE - 2 && z < MAP_SIZE - 2) {
-        if (grid[x][z] === 0 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
-          grid[x][z] = 6; // Floor Window!
-          windowFloorPlaced = true;
-          break;
-        }
-      }
-    }
+    // Place Floor Window (6) directly in the starting lobby floor for immediate visibility
+    grid[2][2] = 6;
 
     mapGridRef.current = grid;
 
@@ -1167,22 +1139,22 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const windowGroup = new THREE.Group();
           windowGroup.position.set(posX, 0, posZ);
 
-          // Detect adjacent wall direction to rotate/offset the window
+          // Detect adjacent walkable corridor direction to face the window towards the corridor
           let angle = 0;
           let offX = 0;
           let offZ = 0;
-          if (x > 0 && grid[x-1][z] === 1) {
+          if (x < MAP_SIZE - 1 && (grid[x+1][z] === 0 || grid[x+1][z] === 3 || grid[x+1][z] === 4)) {
             angle = -Math.PI / 2;
-            offX = -CELL_SIZE / 2 + 0.15;
-          } else if (x < MAP_SIZE - 1 && grid[x+1][z] === 1) {
-            angle = Math.PI / 2;
             offX = CELL_SIZE / 2 - 0.15;
-          } else if (z > 0 && grid[x][z-1] === 1) {
-            angle = Math.PI;
-            offZ = -CELL_SIZE / 2 + 0.15;
-          } else if (z < MAP_SIZE - 1 && grid[x][z+1] === 1) {
+          } else if (x > 0 && (grid[x-1][z] === 0 || grid[x-1][z] === 3 || grid[x-1][z] === 4)) {
+            angle = Math.PI / 2;
+            offX = -CELL_SIZE / 2 + 0.15;
+          } else if (z < MAP_SIZE - 1 && (grid[x][z+1] === 0 || grid[x][z+1] === 3 || grid[x][z+1] === 4)) {
             angle = 0;
             offZ = CELL_SIZE / 2 - 0.15;
+          } else if (z > 0 && (grid[x][z-1] === 0 || grid[x][z-1] === 3 || grid[x][z-1] === 4)) {
+            angle = Math.PI;
+            offZ = -CELL_SIZE / 2 + 0.15;
           }
 
           windowGroup.position.x += offX;
