@@ -150,7 +150,7 @@ export default function App() {
           </div>
           
           <h1 className="text-xl md:text-2xl font-bold tracking-widest text-green-400 mb-1">
-            M.E.G. PROTOCOL
+            M.E.G. PROTOCOL v55
           </h1>
           <p className="text-[10px] text-green-500/50 uppercase tracking-widest mb-6">
             Dimensional Level Synthesis Hub
