@@ -1325,17 +1325,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     // 5. Environmental Lighting Setup
     const ambientLight = new THREE.AmbientLight(
-      theme.lightingStyle === 'flashlight-only' ? 0x020202 : 0x333333
+      theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666
     );
     scene.add(ambientLight);
 
     // Directional subtle fog glow
-    const sunLight = new THREE.DirectionalLight(0xffffff, 0.05);
+    const sunLight = new THREE.DirectionalLight(0xffffff, 0.15);
     sunLight.position.set(10, 20, 10);
     scene.add(sunLight);
 
     if (theme.lightingStyle !== 'flashlight-only') {
-      const intensity = theme.lightingStyle === 'red-alarm' ? 1.6 : theme.lightingStyle === 'white-sterile' ? 1.2 : 0.7;
+      const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : 1.5;
       const color = theme.lightingStyle === 'red-alarm' ? 0xff0000 : theme.lightingStyle === 'neon' ? 0x00ffff : 0xfffae0;
       const glowColor = theme.lightingStyle === 'red-alarm' ? 0xff3333 : theme.lightingStyle === 'neon' ? 0x00f0ff : 0xffffe0;
 
@@ -1371,7 +1371,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
 
     // 6. Spawn Flashlight (Spotlight) attached to camera
-    const flashlight = new THREE.SpotLight(0xffffff, 3.0, 18, Math.PI / 6, 0.4, 1.2);
+    const flashlight = new THREE.SpotLight(0xffffff, 5.0, 24, Math.PI / 5, 0.5, 1.0);
     flashlight.castShadow = true;
     flashlight.shadow.mapSize.width = 1024;
     flashlight.shadow.mapSize.height = 1024;
