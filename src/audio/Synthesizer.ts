@@ -531,60 +531,7 @@ class SoundSynthesizer {
 
   // Synthesize a terrifying, lo-fi high-pitch screeching/screaming sound effect
   triggerEntityScreech() {
-    if (!this.audioCtx || !this.masterGain) return;
-    
-    const ctx = this.audioCtx;
-    const now = ctx.currentTime;
-    const duration = 1.8; // 1.8 seconds screech duration
-    
-    const screamGain = ctx.createGain();
-    screamGain.gain.setValueAtTime(0.0, now);
-    screamGain.gain.linearRampToValueAtTime(0.28, now + 0.15); // quick attack
-    screamGain.gain.setValueAtTime(0.28, now + duration - 0.45);
-    screamGain.gain.exponentialRampToValueAtTime(0.0001, now + duration); // fade out
-    screamGain.connect(this.masterGain);
-
-    // Peaking filter to shape the shrill scream frequencies
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'peaking';
-    filter.Q.setValueAtTime(9.0, now);
-    filter.frequency.setValueAtTime(1400, now);
-    filter.gain.setValueAtTime(12, now); // boost highs
-    filter.connect(screamGain);
-
-    // Detuned sawtooth and square oscillators
-    const osc1 = ctx.createOscillator();
-    osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(900, now);
-    osc1.frequency.exponentialRampToValueAtTime(380, now + duration); // descending pitch sweep
-    osc1.connect(filter);
-
-    const osc2 = ctx.createOscillator();
-    osc2.type = 'square';
-    osc2.frequency.setValueAtTime(940, now); // detune
-    osc2.frequency.exponentialRampToValueAtTime(400, now + duration);
-    osc2.connect(filter);
-
-    // High frequency vibration LFO for a shuddering, screeching distortion texture
-    const vibrationLFO = ctx.createOscillator();
-    vibrationLFO.type = 'sawtooth';
-    vibrationLFO.frequency.setValueAtTime(38, now); // 38Hz vibration frequency
-
-    const vibrationGain = ctx.createGain();
-    vibrationGain.gain.setValueAtTime(190, now); // FM modulation amplitude
-
-    vibrationLFO.connect(vibrationGain);
-    vibrationGain.connect(osc1.frequency);
-    vibrationGain.connect(osc2.frequency);
-
-    vibrationLFO.start(now);
-    vibrationLFO.stop(now + duration);
-
-    osc1.start(now);
-    osc1.stop(now + duration);
-
-    osc2.start(now);
-    osc2.stop(now + duration);
+    // No-op (screeching sound removed at user request)
   }
 }
 
