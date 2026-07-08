@@ -470,6 +470,39 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.strokeStyle = '#1e1b12';
         ctx.lineWidth = 3;
       }
+    } else if (type === 'circus') {
+      // Circus Red/White vertical stripes
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#d32f2f';
+      const stripeW = 32;
+      for (let i = 0; i < size; i += stripeW * 2) {
+        ctx.fillRect(i, 0, stripeW, size);
+      }
+      const grad = ctx.createLinearGradient(0, 0, 0, size);
+      grad.addColorStop(0, 'rgba(0,0,0,0.15)');
+      grad.addColorStop(1, 'rgba(0,0,0,0.3)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+    } else if (type === 'checkerboard') {
+      // Red and Yellow checkerboard floor
+      ctx.fillStyle = '#fbc02d';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = '#d32f2f';
+      const boxSize = 64;
+      for (let i = 0; i < size; i += boxSize) {
+        for (let j = 0; j < size; j += boxSize) {
+          if ((i / boxSize + j / boxSize) % 2 === 0) {
+            ctx.fillRect(i, j, boxSize, boxSize);
+          }
+        }
+      }
+      ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+      ctx.lineWidth = 2;
+      for (let i = 0; i <= size; i += boxSize) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
+      }
     }
 
     const texture = new THREE.CanvasTexture(canvas);

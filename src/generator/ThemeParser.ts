@@ -134,6 +134,7 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
   const hasSnow = words.some(w => ['snow', 'ice', 'icy', 'icey', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost', 'frigid', 'freezing', 'snowy', 'chilly', 'polar', 'glacial', 'gelid', 'wintry', 'frosty', 'subzero', 'boreal', 'hyperborean'].includes(w));
   const hasDesert = words.some(w => ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid', 'barren', 'dry', 'dehydrated', 'wasted', 'ruined', 'decayed', 'decaying', 'antique', 'historical', 'archeological'].includes(w));
   const hasGold = words.some(w => ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'].includes(w));
+  const hasCircus = words.some(w => ['circus', 'carnival', 'clown', 'tent', 'fair', 'fairground', 'carousel', 'funhouse', 'jester'].includes(w));
 
   // Determine dominant theme
   if (hasMetal) {
@@ -234,6 +235,20 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     theme.fogDensity = 0.03;
     theme.props = ['column', 'puddle'];
     theme.entitySpawnChance = 0.15;
+  } else if (hasCircus) {
+    theme.name = 'Level 99: The Funhouse';
+    theme.wallColor = '#d32f2f'; // circus red
+    theme.floorColor = '#fbc02d'; // carnival yellow
+    theme.ceilingColor = '#0d47a1'; // circus tent dark blue
+    theme.wallTexture = 'circus';
+    theme.floorTexture = 'checkerboard';
+    theme.ceilingTexture = 'plaster';
+    theme.lightingStyle = 'strobe';
+    theme.ambientSound = 'synth'; // warped circus synth music
+    theme.fogColor = '#1a0033'; // deep purple void fog
+    theme.fogDensity = 0.07;
+    theme.props = ['column', 'puddle', 'cabinet'];
+    theme.entitySpawnChance = 0.45;
   } else if (hasSterile) {
     theme.name = 'Sterile Ward';
     theme.wallColor = '#e3eef0'; // clinical pale blue-white
@@ -563,11 +578,12 @@ export const checkStaticMatch = (query: string): boolean => {
   const SNOW_KEYWORDS = ['snow', 'ice', 'icy', 'icey', 'cold', 'arctic', 'frozen', 'blizzard', 'winter', 'glacier', 'chill', 'frost', 'frigid', 'freezing', 'snowy', 'chilly', 'polar', 'glacial', 'gelid', 'wintry', 'frosty', 'subzero', 'boreal', 'hyperborean'];
   const DESERT_KEYWORDS = ['desert', 'dusty', 'ruins', 'sandstorm', 'ancient', 'tomb', 'pyramid', 'dunes', 'arid', 'barren', 'dry', 'dehydrated', 'wasted', 'ruined', 'decayed', 'decaying', 'antique', 'historical', 'archeological'];
   const GOLD_KEYWORDS = ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'];
+  const CIRCUS_KEYWORDS = ['circus', 'carnival', 'clown', 'tent', 'fair', 'fairground', 'carousel', 'funhouse', 'jester'];
 
   const allKeywords = [
     ...METAL_KEYWORDS, ...WATER_KEYWORDS, ...DARK_KEYWORDS, ...STERILE_KEYWORDS,
     ...ARCADE_KEYWORDS, ...NATURE_KEYWORDS, ...ENTITY_KEYWORDS, ...TROPICAL_KEYWORDS,
-    ...LAVA_KEYWORDS, ...SNOW_KEYWORDS, ...DESERT_KEYWORDS, ...GOLD_KEYWORDS
+    ...LAVA_KEYWORDS, ...SNOW_KEYWORDS, ...DESERT_KEYWORDS, ...GOLD_KEYWORDS, ...CIRCUS_KEYWORDS
   ];
 
   return words.some(w => allKeywords.includes(w));
