@@ -32,6 +32,7 @@ export default function App() {
   const [theme, setTheme] = useState<RoomTheme | null>(null);
   const [dossier, setDossier] = useState<LevelDossier | null>(null);
   const [items, setItems] = useState<SearchableItem[]>([]);
+  const [showSplash, setShowSplash] = useState(false);
   
   const [soundOn, setSoundOn] = useState(true);
   const [volume, setVolume] = useState(0.4);
@@ -63,29 +64,30 @@ export default function App() {
 
   const handleSynthesis = async (query: string) => {
     setIsLoading(true);
+    setShowSplash(true);
     setKeywords(query);
     setSearchQuery(query);
 
     // Call async dictionary keyword expansion for unknown words at runtime
     const expandedQuery = await expandKeywordsWithDictionary(query);
 
-    // Simulate database scan and generation latency
-    setTimeout(() => {
-      const randomSeed = Math.random();
-      const { theme: generatedTheme, dossier: generatedDossier, items: generatedItems } = parseKeywords(expandedQuery, randomSeed);
-      
-      setTheme(generatedTheme);
-      setDossier(generatedDossier);
-      setItems(generatedItems);
-      setEntityDistance(999.0); // Reset entity distance
+    const randomSeed = Math.random();
+    const { theme: generatedTheme, dossier: generatedDossier, items: generatedItems } = parseKeywords(expandedQuery, randomSeed);
+    
+    // Set theme and data immediately behind the scenes
+    setTheme(generatedTheme);
+    setDossier(generatedDossier);
+    setItems(generatedItems);
+    setEntityDistance(999.0);
 
-      // Trigger ambient soundscape transition
+    // Show the splash screen briefly for a cinematic transition, then fade it out and start the audio
+    setTimeout(() => {
       if (soundOn) {
         Synthesizer.start(generatedTheme.ambientSound);
       }
-
       setIsLoading(false);
-    }, 1000);
+      setShowSplash(false);
+    }, 2500);
   };
 
   const handleItemFound = (itemId: string) => {
@@ -303,6 +305,30 @@ export default function App() {
             {isLoading ? 'SYNC...' : 'SYNTHESIS'}
           </button>
         </form>
+      </div>
+
+      {/* Cinematic Splash Loading Screen showing the Vault Gate */}
+      <div 
+        className={`fixed inset-0 z-40 bg-[#060a06] flex flex-col items-center justify-center transition-opacity duration-1000 select-none ${
+          showSplash ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="relative w-[90%] max-w-xl aspect-[1.2] rounded border border-green-500/25 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.95)] bg-black">
+          <img 
+            src="/vault_gate.jpg" 
+            alt="M.E.G. Staging Entrance" 
+            className="w-full h-full object-cover brightness-[0.7] contrast-[1.1] saturate-[0.9]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
+          
+          <div className="absolute bottom-4 left-4 font-mono text-[9px] text-green-400/90 bg-black/85 px-2.5 py-1.5 border border-green-500/20 rounded shadow-md uppercase tracking-widest animate-pulse">
+            M.E.G. GATEWAY: INGRESS IN PROGRESS...
+          </div>
+        </div>
+        
+        <div className="mt-5 font-mono text-[10px] text-green-500/70 tracking-widest uppercase animate-pulse">
+          SYNCHRONIZING DIMENSIONAL LAYOUT... PLEASE WAIT
+        </div>
       </div>
 
       {/* Retro CRT Scanline Flickers and Vignettes */}
