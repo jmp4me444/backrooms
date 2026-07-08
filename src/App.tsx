@@ -10,6 +10,7 @@ import type { RoomTheme, LevelDossier, SearchableItem } from './types';
 const PRESET_THEMES = [
   { label: 'Yellow Lobby', query: 'yellow walls, office, hum' },
   { label: 'Jungle Oasis', query: 'jungle' },
+  { label: 'Tropical Beach', query: 'beach' },
   { label: 'Sterile Hospital', query: 'hospital' },
   { label: 'Industrial Pipes', query: 'industrial' },
   { label: 'Frozen Archive', query: 'icey room' },
