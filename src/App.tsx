@@ -60,6 +60,7 @@ export default function App() {
   const handleBoot = () => {
     Synthesizer.init();
     Synthesizer.setVolume(volume);
+    setShowSplash(true);
     setHasInteracted(true);
   };
 
@@ -322,7 +323,7 @@ export default function App() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          transition: 'opacity 1.0s ease-in-out',
+          transition: showSplash ? 'none' : 'opacity 1.0s ease-in-out',
           opacity: showSplash ? 1.0 : 0.0,
           pointerEvents: showSplash ? 'auto' : 'none',
           userSelect: 'none'
