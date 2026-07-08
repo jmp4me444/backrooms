@@ -889,6 +889,39 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       grid[MAP_SIZE - 3][MAP_SIZE - 3] = 4; // Fallback
     }
 
+    // Place exactly one Wall Window (5) adjacent to a walkable path
+    let windowWallPlaced = false;
+    for (let offset = 0; offset < MAP_SIZE * MAP_SIZE; offset++) {
+      const idx = (offset + scanOffset + 17) % (MAP_SIZE * MAP_SIZE);
+      const x = Math.floor(idx / MAP_SIZE);
+      const z = idx % MAP_SIZE;
+      if (x > 2 && z > 2 && x < MAP_SIZE - 3 && z < MAP_SIZE - 3) {
+        if (grid[x][z] === 1) {
+          const hasWalkableAdj = (grid[x-1][z] === 0) || (grid[x+1][z] === 0) || (grid[x][z-1] === 0) || (grid[x][z+1] === 0);
+          if (hasWalkableAdj) {
+            grid[x][z] = 5; // Wall Window!
+            windowWallPlaced = true;
+            break;
+          }
+        }
+      }
+    }
+
+    // Place exactly one Floor Window (6) in a walkable corridor
+    let windowFloorPlaced = false;
+    for (let offset = 0; offset < MAP_SIZE * MAP_SIZE; offset++) {
+      const idx = (offset + scanOffset + 43) % (MAP_SIZE * MAP_SIZE);
+      const x = Math.floor(idx / MAP_SIZE);
+      const z = idx % MAP_SIZE;
+      if (x > 2 && z > 2 && x < MAP_SIZE - 3 && z < MAP_SIZE - 3) {
+        if (grid[x][z] === 0 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
+          grid[x][z] = 6; // Floor Window!
+          windowFloorPlaced = true;
+          break;
+        }
+      }
+    }
+
     mapGridRef.current = grid;
 
     // 3. Procedural Materials
@@ -1128,6 +1161,75 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
 
           mazeGroup.add(stairsGroup);
+        } else if (grid[x][z] === 5) {
+          // Wall Window Portal
+          const windowGroup = new THREE.Group();
+          windowGroup.position.set(posX, 0, posZ);
+
+          const frameMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.8 }); // wooden trim
+          
+          const leftSide = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.5, 0.4), frameMat);
+          leftSide.position.set(-CELL_SIZE / 2 + 0.075, 3.5 / 2, 0);
+          leftSide.castShadow = true;
+          
+          const rightSide = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.5, 0.4), frameMat);
+          rightSide.position.set(CELL_SIZE / 2 - 0.075, 3.5 / 2, 0);
+          rightSide.castShadow = true;
+
+          const topHeader = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE - 0.3, 0.8, 0.4), frameMat);
+          topHeader.position.set(0, 3.5 - 0.4, 0);
+          topHeader.castShadow = true;
+          
+          const bottomHeader = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE - 0.3, 0.8, 0.4), frameMat);
+          bottomHeader.position.set(0, 0.4, 0);
+          bottomHeader.castShadow = true;
+
+          // Glowing blue star window glass pane
+          const glassGeo = new THREE.BoxGeometry(CELL_SIZE - 0.3, 3.5 - 1.6, 0.08);
+          const glassMat = new THREE.MeshPhysicalMaterial({
+            color: 0x00f0ff,
+            emissive: 0x00aacc,
+            emissiveIntensity: 1.2,
+            transparent: true,
+            opacity: 0.65,
+            roughness: 0.1,
+            transmission: 0.9,
+            thickness: 0.3
+          });
+          const glass = new THREE.Mesh(glassGeo, glassMat);
+          glass.position.set(0, 3.5 / 2, 0);
+
+          windowGroup.add(leftSide, rightSide, topHeader, bottomHeader, glass);
+          mazeGroup.add(windowGroup);
+        } else if (grid[x][z] === 6) {
+          // Floor Window / Trapdoor Portal
+          const windowGroup = new THREE.Group();
+          windowGroup.position.set(posX, 0, posZ);
+
+          const frameMat = new THREE.MeshStandardMaterial({ color: 0x212121, metalness: 0.8 }); // iron borders
+          
+          const bL = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, 0.05, 0.25), frameMat); bL.position.set(0, 0.025, -CELL_SIZE / 2 + 0.125);
+          const bR = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, 0.05, 0.25), frameMat); bR.position.set(0, 0.025, CELL_SIZE / 2 - 0.125);
+          const bA = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, CELL_SIZE - 0.5), frameMat); bA.position.set(-CELL_SIZE / 2 + 0.125, 0.025, 0);
+          const bB = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, CELL_SIZE - 0.5), frameMat); bB.position.set(CELL_SIZE / 2 - 0.125, 0.025, 0);
+
+          // Glowing green glass trapdoor pane
+          const glassGeo = new THREE.BoxGeometry(CELL_SIZE - 0.5, 0.02, CELL_SIZE - 0.5);
+          const glassMat = new THREE.MeshPhysicalMaterial({
+            color: 0x39ff14,
+            emissive: 0x00ff66,
+            emissiveIntensity: 1.5,
+            transparent: true,
+            opacity: 0.7,
+            roughness: 0.1,
+            transmission: 0.9,
+            thickness: 0.3
+          });
+          const glass = new THREE.Mesh(glassGeo, glassMat);
+          glass.position.set(0, 0.01, 0);
+
+          windowGroup.add(bL, bR, bA, bB, glass);
+          mazeGroup.add(windowGroup);
         } else if (grid[x][z] === 0) {
           // Render theme-specific floor and wall props inside walkable corridors
           const isLavaTheme = theme.name.includes('Boiler') || theme.name.includes('Underworld');
@@ -2146,6 +2248,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
         } else if (grid[px][pz] === 4) {
           // Walk up stairs to transition
+          onLevelTransition(Math.floor(Math.random() * 1000000));
+        } else if (grid[px][pz] === 5 || grid[px][pz] === 6) {
+          // Crawl through Wall Window (5) or fall through Floor Window (6) to transition!
           onLevelTransition(Math.floor(Math.random() * 1000000));
         }
       }
