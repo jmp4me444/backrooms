@@ -1167,6 +1167,145 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               
               mazeGroup.add(treeGroup);
             }
+          } else {
+            // Render theme-specific floor and wall props inside walkable corridors
+            const isLavaTheme = theme.name.includes('Boiler') || theme.name.includes('Underworld');
+            const isSterileTheme = theme.name.includes('Sterile') || theme.name.includes('Ward');
+            const isMetalTheme = theme.name.includes('Industrial') || theme.name.includes('Sector');
+            const isFrozenTheme = theme.name.includes('Frozen') || theme.name.includes('Archive');
+            const isCircusTheme = theme.name.includes('Funhouse') || theme.name.includes('Circus');
+            const isGoldTheme = theme.name.includes('Golden') || theme.name.includes('Palace');
+
+            const propRoll = Math.abs(Math.sin(x * 37.7 + z * 19.3 + seedNum) * 100) % 1;
+
+            // Spawn props at ~15% of cells, avoiding the spawn lobby
+            if (propRoll > 0.85 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
+              const propGroup = new THREE.Group();
+              propGroup.position.set(posX, 0, posZ);
+
+              if (isLavaTheme) {
+                // Procedural Lava/Boiler Vent (glowing coal pile)
+                const coalGeo = new THREE.ConeGeometry(0.5, 0.4, 6);
+                const coalMat = new THREE.MeshStandardMaterial({ 
+                  color: 0x221100, 
+                  roughness: 0.9,
+                  emissive: 0xff3300, 
+                  emissiveIntensity: 1.5 
+                });
+                const coal = new THREE.Mesh(coalGeo, coalMat);
+                coal.position.y = 0.2;
+                propGroup.add(coal);
+              } 
+              else if (isSterileTheme) {
+                // Procedural Hospital Locker/Cabinet
+                const cabGeo = new THREE.BoxGeometry(0.8, 1.6, 0.6);
+                const cabMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.4, metalness: 0.7 });
+                const cabinet = new THREE.Mesh(cabGeo, cabMat);
+                cabinet.position.y = 0.8;
+                cabinet.castShadow = true;
+                cabinet.receiveShadow = true;
+                
+                // Handles
+                const handleGeo = new THREE.BoxGeometry(0.04, 0.2, 0.04);
+                const handleMat = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 1 });
+                const handle = new THREE.Mesh(handleGeo, handleMat);
+                handle.position.set(0.1, 0.8, 0.31);
+                propGroup.add(cabinet, handle);
+              } 
+              else if (isMetalTheme) {
+                // Procedural Wall Industrial Pipe
+                const pipeGeo = new THREE.CylinderGeometry(0.1, 0.1, CELL_SIZE, 8);
+                const pipeMat = new THREE.MeshStandardMaterial({ color: 0x776655, metalness: 0.8, roughness: 0.5 });
+                const pipe = new THREE.Mesh(pipeGeo, pipeMat);
+                pipe.rotation.x = Math.PI / 2; // Lie flat along corridor
+                pipe.position.set(-1.9, 2.5, 0); // Wall mount
+                pipe.castShadow = true;
+                propGroup.add(pipe);
+              } 
+              else if (isFrozenTheme) {
+                // Procedural Icicle hanging from ceiling or ice chunk on floor
+                const isCeiling = (x + z) % 2 === 0;
+                const iceGeo = new THREE.ConeGeometry(0.25, 1.2, 6);
+                const iceMat = new THREE.MeshPhysicalMaterial({
+                  color: 0x88ccff,
+                  transparent: true,
+                  opacity: 0.7,
+                  roughness: 0.1,
+                  transmission: 0.9,
+                  thickness: 0.5
+                });
+                const icicle = new THREE.Mesh(iceGeo, iceMat);
+                if (isCeiling) {
+                  icicle.rotation.x = Math.PI; // upside down
+                  icicle.position.y = 3.5 - 0.6; // hang from ceiling
+                } else {
+                  icicle.position.y = 0.6; // ground spike
+                }
+                icicle.castShadow = true;
+                propGroup.add(icicle);
+              } 
+              else if (isCircusTheme) {
+                // Procedural Carnival Balloon floating
+                const ballGeo = new THREE.SphereGeometry(0.3, 8, 8);
+                const colors = [0xd32f2f, 0xfbc02d, 0x0d47a1, 0x388e3c];
+                const randomColor = colors[(x + z) % colors.length];
+                const ballMat = new THREE.MeshStandardMaterial({ color: randomColor, roughness: 0.1, metalness: 0.1 });
+                const balloon = new THREE.Mesh(ballGeo, ballMat);
+                balloon.position.y = 1.2;
+                balloon.castShadow = true;
+
+                // String
+                const stringGeo = new THREE.CylinderGeometry(0.005, 0.005, 1.2, 4);
+                const stringMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
+                const string = new THREE.Mesh(stringGeo, stringMat);
+                string.position.y = 0.6;
+                propGroup.add(balloon, string);
+              } 
+              else if (isGoldTheme) {
+                // Procedural Golden Chest on the floor
+                const chestGeo = new THREE.BoxGeometry(0.8, 0.5, 0.5);
+                const chestMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.9 });
+                const chest = new THREE.Mesh(chestGeo, chestMat);
+                chest.position.y = 0.25;
+                chest.castShadow = true;
+                
+                // Banding
+                const bandGeo = new THREE.BoxGeometry(0.82, 0.52, 0.1);
+                const bandMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.6 });
+                const bandL = new THREE.Mesh(bandGeo, bandMat);
+                bandL.position.set(0, 0.25, -0.15);
+                const bandR = new THREE.Mesh(bandGeo, bandMat);
+                bandR.position.set(0, 0.25, 0.15);
+                propGroup.add(chest, bandL, bandR);
+              } 
+              else {
+                // Default theme: Procedural Office Chair
+                const seatGeo = new THREE.BoxGeometry(0.6, 0.08, 0.6);
+                const frameMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
+                const fabricMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.8 });
+                const seat = new THREE.Mesh(seatGeo, fabricMat);
+                seat.position.y = 0.45;
+                seat.castShadow = true;
+
+                const backGeo = new THREE.BoxGeometry(0.6, 0.6, 0.08);
+                const back = new THREE.Mesh(backGeo, fabricMat);
+                back.position.set(0, 0.75, -0.26);
+                back.castShadow = true;
+
+                const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.45, 4);
+                const leg = new THREE.Mesh(legGeo, frameMat);
+                leg.position.set(0, 0.225, 0);
+                propGroup.add(seat, back, leg);
+              }
+
+              // Apply slight random offset to keep placement natural and out of exact center
+              const offsetX = ((Math.sin(x * 12.3) * 100) % 1) * 0.8;
+              const offsetZ = ((Math.sin(z * 45.7) * 100) % 1) * 0.8;
+              propGroup.position.x += offsetX;
+              propGroup.position.z += offsetZ;
+
+              mazeGroup.add(propGroup);
+            }
           }
         }
       }
