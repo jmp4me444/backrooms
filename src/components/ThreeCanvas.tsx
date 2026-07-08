@@ -1129,195 +1129,290 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
           mazeGroup.add(stairsGroup);
         } else if (grid[x][z] === 0) {
-          // Render theme-specific props inside walkable corridors
+          // Render theme-specific floor and wall props inside walkable corridors
+          const isLavaTheme = theme.name.includes('Boiler') || theme.name.includes('Underworld');
+          const isSterileTheme = theme.name.includes('Sterile') || theme.name.includes('Ward');
+          const isMetalTheme = theme.name.includes('Industrial') || theme.name.includes('Sector');
+          const isFrozenTheme = theme.name.includes('Frozen') || theme.name.includes('Archive');
+          const isCircusTheme = theme.name.includes('Funhouse') || theme.name.includes('Circus');
+          const isGoldTheme = theme.name.includes('Golden') || theme.name.includes('Palace');
           const isTropicalTheme = theme.name.includes('Tropical');
           const isNatureTheme = theme.name.includes('Arbour');
-          
-          if (isTropicalTheme || isNatureTheme) {
-            // Determine spawn probability using cell coordinate maths
-            const treeRoll = Math.abs(Math.sin(x * 55.4 + z * 12.1 + seedNum) * 100) % 1;
-            
-            // Spawn tree at ~8% of cells, avoiding the start point cell [1,1]
-            if (treeRoll > 0.92 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
-              const treeGroup = new THREE.Group();
-              treeGroup.position.set(posX, 0, posZ);
-              
-              if (isTropicalTheme) {
-                // Procedural Palm Tree
-                const trunkHeight = 3.0;
-                const trunkGeo = new THREE.CylinderGeometry(0.08, 0.16, trunkHeight, 8);
-                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-                trunk.position.y = trunkHeight / 2;
-                trunk.castShadow = true;
-                treeGroup.add(trunk);
-                
-                // Green fan fronds at the top
-                const numFronds = 6;
-                const frondGeo = new THREE.BoxGeometry(1.6, 0.02, 0.3);
-                for (let i = 0; i < numFronds; i++) {
-                  const angle = (i / numFronds) * Math.PI * 2;
-                  const frond = new THREE.Mesh(frondGeo, leafMat);
-                  frond.position.set(Math.cos(angle) * 0.7, trunkHeight - 0.1, Math.sin(angle) * 0.7);
-                  frond.rotation.y = angle;
-                  frond.rotation.z = Math.PI / 8; // angle downwards slightly
-                  frond.castShadow = true;
-                  treeGroup.add(frond);
-                }
+          const isWaterTheme = theme.name.includes('Pool');
+          const isArcadeTheme = theme.name.includes('Arcade') || theme.name.includes('Cyber');
+          const isDarkVoid = theme.name.includes('Void') || theme.name.includes('Dark');
+          const isDesertTheme = theme.name.includes('Desert') || theme.name.includes('Ruins');
+          const isMatrixTheme = theme.name.includes('Matrix');
+
+          const propRoll = Math.abs(Math.sin(x * 37.7 + z * 19.3 + seedNum) * 100) % 1;
+
+          // Spawn props at ~15% of cells, avoiding start lobby
+          if (propRoll > 0.85 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
+            const propGroup = new THREE.Group();
+            propGroup.position.set(posX, 0, posZ);
+            const itemIndex = (x + z) % 3;
+
+            if (isTropicalTheme || isNatureTheme) {
+              if (itemIndex === 0) {
+                // Beach Ball
+                const ball = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.1 }));
+                ball.position.y = 0.3;
+                const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.305, 0.305, 0.08, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                stripe.position.y = 0.3;
+                propGroup.add(ball, stripe);
+              } else if (itemIndex === 1) {
+                // Deck Chair
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.5, 0.7), new THREE.MeshStandardMaterial({ color: 0xd7ccc8 }));
+                frame.rotation.x = Math.PI / 5; frame.position.set(0, 0.18, 0);
+                const fabric = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.015, 0.65), new THREE.MeshStandardMaterial({ color: 0x00bcd4 }));
+                fabric.rotation.x = Math.PI / 5; fabric.position.set(0, 0.2, 0);
+                propGroup.add(frame, fabric);
               } else {
-                // Nature Forest Tree: simple shrub column
-                const trunkGeo = new THREE.CylinderGeometry(0.12, 0.2, 1.2, 8);
-                const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-                trunk.position.y = 0.6;
-                treeGroup.add(trunk);
-                
-                const leafGeo = new THREE.BoxGeometry(1.5, 1.8, 1.5);
-                const foliage = new THREE.Mesh(leafGeo, leafMat);
-                foliage.position.y = 1.9;
-                foliage.castShadow = true;
-                treeGroup.add(foliage);
-              }
-              
-              mazeGroup.add(treeGroup);
-            }
-          } else {
-            // Render theme-specific floor and wall props inside walkable corridors
-            const isLavaTheme = theme.name.includes('Boiler') || theme.name.includes('Underworld');
-            const isSterileTheme = theme.name.includes('Sterile') || theme.name.includes('Ward');
-            const isMetalTheme = theme.name.includes('Industrial') || theme.name.includes('Sector');
-            const isFrozenTheme = theme.name.includes('Frozen') || theme.name.includes('Archive');
-            const isCircusTheme = theme.name.includes('Funhouse') || theme.name.includes('Circus');
-            const isGoldTheme = theme.name.includes('Golden') || theme.name.includes('Palace');
-
-            const propRoll = Math.abs(Math.sin(x * 37.7 + z * 19.3 + seedNum) * 100) % 1;
-
-            // Spawn props at ~15% of cells, avoiding the spawn lobby
-            if (propRoll > 0.85 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
-              const propGroup = new THREE.Group();
-              propGroup.position.set(posX, 0, posZ);
-
-              if (isLavaTheme) {
-                // Procedural Lava/Boiler Vent (glowing coal pile)
-                const coalGeo = new THREE.ConeGeometry(0.5, 0.4, 6);
-                const coalMat = new THREE.MeshStandardMaterial({ 
-                  color: 0x221100, 
-                  roughness: 0.9,
-                  emissive: 0xff3300, 
-                  emissiveIntensity: 1.5 
-                });
-                const coal = new THREE.Mesh(coalGeo, coalMat);
-                coal.position.y = 0.2;
-                propGroup.add(coal);
-              } 
-              else if (isSterileTheme) {
-                // Procedural Hospital Locker/Cabinet
-                const cabGeo = new THREE.BoxGeometry(0.8, 1.6, 0.6);
-                const cabMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, roughness: 0.4, metalness: 0.7 });
-                const cabinet = new THREE.Mesh(cabGeo, cabMat);
-                cabinet.position.y = 0.8;
-                cabinet.castShadow = true;
-                cabinet.receiveShadow = true;
-                
-                // Handles
-                const handleGeo = new THREE.BoxGeometry(0.04, 0.2, 0.04);
-                const handleMat = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 1 });
-                const handle = new THREE.Mesh(handleGeo, handleMat);
-                handle.position.set(0.1, 0.8, 0.31);
-                propGroup.add(cabinet, handle);
-              } 
-              else if (isMetalTheme) {
-                // Procedural Wall Industrial Pipe
-                const pipeGeo = new THREE.CylinderGeometry(0.1, 0.1, CELL_SIZE, 8);
-                const pipeMat = new THREE.MeshStandardMaterial({ color: 0x776655, metalness: 0.8, roughness: 0.5 });
-                const pipe = new THREE.Mesh(pipeGeo, pipeMat);
-                pipe.rotation.x = Math.PI / 2; // Lie flat along corridor
-                pipe.position.set(-1.9, 2.5, 0); // Wall mount
-                pipe.castShadow = true;
-                propGroup.add(pipe);
-              } 
-              else if (isFrozenTheme) {
-                // Procedural Icicle hanging from ceiling or ice chunk on floor
-                const isCeiling = (x + z) % 2 === 0;
-                const iceGeo = new THREE.ConeGeometry(0.25, 1.2, 6);
-                const iceMat = new THREE.MeshPhysicalMaterial({
-                  color: 0x88ccff,
-                  transparent: true,
-                  opacity: 0.7,
-                  roughness: 0.1,
-                  transmission: 0.9,
-                  thickness: 0.5
-                });
-                const icicle = new THREE.Mesh(iceGeo, iceMat);
-                if (isCeiling) {
-                  icicle.rotation.x = Math.PI; // upside down
-                  icicle.position.y = 3.5 - 0.6; // hang from ceiling
+                // Palm tree / shrub
+                if (isTropicalTheme) {
+                  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 2.4, 8), trunkMat);
+                  trunk.position.y = 1.2; propGroup.add(trunk);
+                  for (let i = 0; i < 6; i++) {
+                    const angle = (i / 6) * Math.PI * 2;
+                    const frond = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.25), leafMat);
+                    frond.position.set(Math.cos(angle) * 0.6, 2.3, Math.sin(angle) * 0.6);
+                    frond.rotation.set(0, angle, Math.PI / 8);
+                    propGroup.add(frond);
+                  }
                 } else {
-                  icicle.position.y = 0.6; // ground spike
+                  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 1.0, 8), trunkMat);
+                  trunk.position.y = 0.5;
+                  const foliage = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 1.2), leafMat);
+                  foliage.position.y = 1.5;
+                  propGroup.add(trunk, foliage);
                 }
-                icicle.castShadow = true;
-                propGroup.add(icicle);
-              } 
-              else if (isCircusTheme) {
-                // Procedural Carnival Balloon floating
-                const ballGeo = new THREE.SphereGeometry(0.3, 8, 8);
+              }
+            }
+            else if (isLavaTheme) {
+              if (itemIndex === 0) {
+                const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.03, 4, 10), new THREE.MeshStandardMaterial({ color: 0xff3300, metalness: 0.8 }));
+                wheel.position.set(-1.85, 1.5, 0); wheel.rotation.y = Math.PI / 2;
+                const rod = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.25, 4), new THREE.MeshStandardMaterial({ color: 0xff3300 }));
+                rod.position.set(-1.95, 1.5, 0); rod.rotation.z = Math.PI / 2;
+                propGroup.add(wheel, rod);
+              } else if (itemIndex === 1) {
+                const coal = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.4, 6), new THREE.MeshStandardMaterial({ color: 0x221100, emissive: 0xff3300, emissiveIntensity: 1.5 }));
+                coal.position.y = 0.2; propGroup.add(coal);
+              } else {
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0xe65100, metalness: 0.8 }));
+                barrel.position.y = 0.45; propGroup.add(barrel);
+              }
+            }
+            else if (isSterileTheme) {
+              if (itemIndex === 0) {
+                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.8, 6), new THREE.MeshStandardMaterial({ color: 0xbbbbbb, metalness: 0.9 }));
+                pole.position.y = 0.9;
+                const bag = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.25, 0.06), new THREE.MeshPhysicalMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, transmission: 0.8 }));
+                bag.position.set(0.08, 1.6, 0); propGroup.add(pole, bag);
+              } else if (itemIndex === 1) {
+                const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.6), new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.7 }));
+                cabinet.position.y = 0.8; propGroup.add(cabinet);
+              } else {
+                const bin = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.65, 8), new THREE.MeshStandardMaterial({ color: 0x0288d1 }));
+                bin.position.y = 0.3; propGroup.add(bin);
+              }
+            }
+            else if (isMetalTheme) {
+              if (itemIndex === 0) {
+                const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, CELL_SIZE, 8), new THREE.MeshStandardMaterial({ color: 0x776655, metalness: 0.8 }));
+                pipe.rotation.x = Math.PI / 2; pipe.position.set(-1.9, 2.5, 0); propGroup.add(pipe);
+              } else if (itemIndex === 1) {
+                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x8d6e63, metalness: 0.7 }));
+                barrel.position.y = 0.45; propGroup.add(barrel);
+              } else {
+                const fuseBox = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+                fuseBox.position.set(-1.92, 1.6, 0);
+                const greenL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+                greenL.position.set(-1.86, 1.7, 0.1);
+                const redL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+                redL.position.set(-1.86, 1.5, 0.1);
+                propGroup.add(fuseBox, greenL, redL);
+              }
+            }
+            else if (isFrozenTheme) {
+              if (itemIndex === 0) {
+                const icicle = new THREE.Mesh(new THREE.ConeGeometry(0.2, 1.0, 6), new THREE.MeshPhysicalMaterial({ color: 0x88ccff, transparent: true, transmission: 0.9 }));
+                icicle.rotation.x = Math.PI; icicle.position.y = 2.9; propGroup.add(icicle);
+              } else if (itemIndex === 1) {
+                const iceBlock = new THREE.Mesh(new THREE.IcosahedronGeometry(0.4, 0), new THREE.MeshPhysicalMaterial({ color: 0x00bcd4, transmission: 0.9 }));
+                iceBlock.position.y = 0.3; propGroup.add(iceBlock);
+              } else {
+                const snowMound = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }));
+                snowMound.position.y = 0.175; propGroup.add(snowMound);
+              }
+            }
+            else if (isCircusTheme) {
+              if (itemIndex === 0) {
                 const colors = [0xd32f2f, 0xfbc02d, 0x0d47a1, 0x388e3c];
-                const randomColor = colors[(x + z) % colors.length];
-                const ballMat = new THREE.MeshStandardMaterial({ color: randomColor, roughness: 0.1, metalness: 0.1 });
-                const balloon = new THREE.Mesh(ballGeo, ballMat);
-                balloon.position.y = 1.2;
-                balloon.castShadow = true;
-
-                // String
-                const stringGeo = new THREE.CylinderGeometry(0.005, 0.005, 1.2, 4);
-                const stringMat = new THREE.MeshBasicMaterial({ color: 0x888888 });
-                const string = new THREE.Mesh(stringGeo, stringMat);
-                string.position.y = 0.6;
+                const balloon = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 8), new THREE.MeshStandardMaterial({ color: colors[(x + z) % colors.length], roughness: 0.1 }));
+                balloon.position.y = 1.35;
+                const string = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 1.35, 4), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+                string.position.y = 0.675;
                 propGroup.add(balloon, string);
-              } 
-              else if (isGoldTheme) {
-                // Procedural Golden Chest on the floor
-                const chestGeo = new THREE.BoxGeometry(0.8, 0.5, 0.5);
-                const chestMat = new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.9 });
-                const chest = new THREE.Mesh(chestGeo, chestMat);
+              } else if (itemIndex === 1) {
+                const toyBox = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), new THREE.MeshStandardMaterial({ color: 0xd32f2f }));
+                toyBox.position.y = 0.225; propGroup.add(toyBox);
+              } else {
+                const post = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.8, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+                post.position.y = 0.9; propGroup.add(post);
+                for (let sy = 0.3; sy < 1.8; sy += 0.4) {
+                  const stripe = new THREE.Mesh(new THREE.TorusGeometry(0.082, 0.015, 4, 8), new THREE.MeshBasicMaterial({ color: 0xd32f2f }));
+                  stripe.position.set(0, sy, 0); stripe.rotation.x = Math.PI / 2;
+                  propGroup.add(stripe);
+                }
+              }
+            }
+            else if (isGoldTheme) {
+              if (itemIndex === 0) {
+                const chest = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0xffd700, roughness: 0.2, metalness: 0.9 }));
                 chest.position.y = 0.25;
-                chest.castShadow = true;
-                
-                // Banding
-                const bandGeo = new THREE.BoxGeometry(0.82, 0.52, 0.1);
-                const bandMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63, roughness: 0.6 });
-                const bandL = new THREE.Mesh(bandGeo, bandMat);
+                const bandL = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.52, 0.1), new THREE.MeshStandardMaterial({ color: 0x8d6e63 }));
                 bandL.position.set(0, 0.25, -0.15);
-                const bandR = new THREE.Mesh(bandGeo, bandMat);
+                const bandR = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.52, 0.1), new THREE.MeshStandardMaterial({ color: 0x8d6e63 }));
                 bandR.position.set(0, 0.25, 0.15);
                 propGroup.add(chest, bandL, bandR);
-              } 
-              else {
-                // Default theme: Procedural Office Chair
-                const seatGeo = new THREE.BoxGeometry(0.6, 0.08, 0.6);
-                const frameMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
-                const fabricMat = new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.8 });
-                const seat = new THREE.Mesh(seatGeo, fabricMat);
-                seat.position.y = 0.45;
-                seat.castShadow = true;
-
-                const backGeo = new THREE.BoxGeometry(0.6, 0.6, 0.08);
-                const back = new THREE.Mesh(backGeo, fabricMat);
-                back.position.set(0, 0.75, -0.26);
-                back.castShadow = true;
-
-                const legGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.45, 4);
-                const leg = new THREE.Mesh(legGeo, frameMat);
-                leg.position.set(0, 0.225, 0);
-                propGroup.add(seat, back, leg);
+              } else if (itemIndex === 1) {
+                const barGeo = new THREE.BoxGeometry(0.4, 0.12, 0.18);
+                const barMat = new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.95 });
+                const b1 = new THREE.Mesh(barGeo, barMat); b1.position.set(-0.15, 0.06, 0);
+                const b2 = new THREE.Mesh(barGeo, barMat); b2.position.set(0.15, 0.06, 0);
+                const b3 = new THREE.Mesh(barGeo, barMat); b3.position.set(0, 0.18, 0);
+                propGroup.add(b1, b2, b3);
+              } else {
+                const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.25, 0.8, 8), new THREE.MeshStandardMaterial({ color: 0xffd700, metalness: 0.9 }));
+                vase.position.y = 0.4; propGroup.add(vase);
               }
-
-              // Apply slight random offset to keep placement natural and out of exact center
-              const offsetX = ((Math.sin(x * 12.3) * 100) % 1) * 0.8;
-              const offsetZ = ((Math.sin(z * 45.7) * 100) % 1) * 0.8;
-              propGroup.position.x += offsetX;
-              propGroup.position.z += offsetZ;
-
-              mazeGroup.add(propGroup);
             }
+            else if (isWaterTheme) {
+              if (itemIndex === 0) {
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.08, 6, 12), new THREE.MeshStandardMaterial({ color: 0xff3b30 }));
+                ring.rotation.x = Math.PI / 2; ring.position.y = 0.08;
+                const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.18), new THREE.MeshStandardMaterial({ color: 0xffffff })); b1.position.set(0.3, 0.08, 0);
+                const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.18), new THREE.MeshStandardMaterial({ color: 0xffffff })); b2.position.set(-0.3, 0.08, 0);
+                propGroup.add(ring, b1, b2);
+              } else if (itemIndex === 1) {
+                const ladder = new THREE.Group();
+                const railMat = new THREE.MeshStandardMaterial({ color: 0xdddddd, metalness: 0.9 });
+                const rL = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.8, 6), railMat); rL.position.set(-0.3, 0.9, -1.9);
+                const rR = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1.8, 6), railMat); rR.position.set(0.3, 0.9, -1.9);
+                ladder.add(rL, rR);
+                for (let r = 0.3; r < 1.8; r += 0.4) {
+                  const rung = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.6, 6), railMat);
+                  rung.position.set(0, r, -1.9); rung.rotation.z = Math.PI / 2;
+                  ladder.add(rung);
+                }
+                propGroup.add(ladder);
+              } else {
+                const grate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.015, 0.5), new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.8 }));
+                grate.position.y = 0.0075; propGroup.add(grate);
+              }
+            }
+            else if (isArcadeTheme) {
+              if (itemIndex === 0) {
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 1.4, 0.55), new THREE.MeshStandardMaterial({ color: 0x151515 }));
+                body.position.y = 0.7;
+                const screen = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.35, 0.05), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+                screen.position.set(0, 0.9, 0.25);
+                const marquee = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.12, 0.08), new THREE.MeshBasicMaterial({ color: 0xd633ff }));
+                marquee.position.set(0, 1.25, 0.25);
+                propGroup.add(body, screen, marquee);
+              } else if (itemIndex === 1) {
+                const pad = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.02, 0.75), new THREE.MeshStandardMaterial({ color: 0x252525, metalness: 0.6 }));
+                pad.position.y = 0.01;
+                const arrow = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.022, 0.18), new THREE.MeshBasicMaterial({ color: 0x39ff14 }));
+                arrow.position.set(0, 0.01, 0.22);
+                propGroup.add(pad, arrow);
+              } else {
+                const colors = [0xff007f, 0x00f0ff, 0x39ff14];
+                const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.8, 6), new THREE.MeshBasicMaterial({ color: colors[(x + z) % colors.length] }));
+                stick.position.set(-1.9, 1.2, 0); propGroup.add(stick);
+              }
+            }
+            else if (isDarkVoid) {
+              if (itemIndex === 0) {
+                const obelisk = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.4, 0.3), new THREE.MeshBasicMaterial({ color: 0x001100 }));
+                obelisk.position.y = 1.0;
+                const glint = new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+                glint.position.set(0, 1.5, 0); propGroup.add(obelisk, glint);
+              } else if (itemIndex === 1) {
+                const chains = new THREE.Group();
+                const chainMat = new THREE.MeshStandardMaterial({ color: 0x444444, metalness: 0.9 });
+                for (let c = -0.3; c <= 0.3; c += 0.15) {
+                  const link = new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.02, 4, 8), chainMat);
+                  link.position.set(c, 0.02, c * 0.5); link.rotation.y = c * 5;
+                  chains.add(link);
+                }
+                propGroup.add(chains);
+              } else {
+                const boneMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+                const b1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.1), boneMat); b1.position.set(0, 0.05, 0); b1.rotation.y = Math.PI / 4;
+                const b2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.1), boneMat); b2.position.set(0.05, 0.05, -0.05); b2.rotation.y = -Math.PI / 3;
+                propGroup.add(b1, b2);
+              }
+            }
+            else if (isDesertTheme) {
+              if (itemIndex === 0) {
+                const cactus = new THREE.Group();
+                const cacMat = new THREE.MeshStandardMaterial({ color: 0x2e7d32, roughness: 0.8 });
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2, 6), cacMat); trunk.position.y = 0.6; cactus.add(trunk);
+                const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.4, 6), cacMat); armL.position.set(-0.15, 0.8, 0); armL.rotation.z = Math.PI / 2;
+                const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.4, 6), cacMat); armR.position.set(0.15, 0.7, 0); armR.rotation.z = -Math.PI / 2;
+                cactus.add(armL, armR); propGroup.add(cactus);
+              } else if (itemIndex === 1) {
+                const urn = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, 0.7, 8), new THREE.MeshStandardMaterial({ color: 0xa1887f }));
+                urn.position.y = 0.35; propGroup.add(urn);
+              } else {
+                const block = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.4, 0.5), new THREE.MeshStandardMaterial({ color: 0xbcaaa4 }));
+                block.position.y = 0.2; block.rotation.y = Math.PI / 6; propGroup.add(block);
+              }
+            }
+            else if (isMatrixTheme) {
+              if (itemIndex === 0) {
+                const consoleDesk = new THREE.Group();
+                const desk = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.75, 0.4), new THREE.MeshStandardMaterial({ color: 0x1a1a1a }));
+                desk.position.y = 0.375; consoleDesk.add(desk);
+                const screen = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.25, 0.05), new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
+                screen.position.set(0, 0.88, 0.05); consoleDesk.add(screen);
+                propGroup.add(consoleDesk);
+              } else if (itemIndex === 1) {
+                const vent = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.02, 0.6), new THREE.MeshStandardMaterial({ color: 0x2e3b2e, metalness: 0.8 }));
+                vent.position.y = 0.01; propGroup.add(vent);
+              } else {
+                const box = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.2, 0.08), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+                box.position.set(-1.95, 2.2, 0);
+                const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), new THREE.MeshBasicMaterial({ color: 0x00ff66 }));
+                bulb.position.set(-1.9, 2.2, 0); propGroup.add(box, bulb);
+              }
+            }
+            else {
+              if (itemIndex === 0) {
+                const trashCan = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0x757575, metalness: 0.5 }));
+                trashCan.position.y = 0.25; propGroup.add(trashCan);
+              } else if (itemIndex === 1) {
+                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 0.6), new THREE.MeshStandardMaterial({ color: 0x424242, roughness: 0.8 }));
+                seat.position.y = 0.45;
+                const back = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.08), new THREE.MeshStandardMaterial({ color: 0x424242 }));
+                back.position.set(0, 0.75, -0.26);
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.45, 4), new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 }));
+                leg.position.set(0, 0.225, 0); propGroup.add(seat, back, leg);
+              } else {
+                const cardBox = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.55), new THREE.MeshStandardMaterial({ color: 0xb59975 }));
+                cardBox.position.y = 0.225; cardBox.rotation.y = Math.PI / 8; propGroup.add(cardBox);
+              }
+            }
+
+            // Apply slight random offset to keep placement natural and out of exact center
+            const offsetX = ((Math.sin(x * 12.3) * 100) % 1) * 0.8;
+            const offsetZ = ((Math.sin(z * 45.7) * 100) % 1) * 0.8;
+            propGroup.position.x += offsetX;
+            propGroup.position.z += offsetZ;
+
+            mazeGroup.add(propGroup);
           }
         }
       }
