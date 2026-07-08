@@ -318,83 +318,86 @@ export default function App() {
           width: '100vw',
           height: '100vh',
           zIndex: 9999, // ensures it sits on top of 3D Canvas
-          backgroundColor: '#060a06',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
+          backgroundColor: '#000000',
           transition: showSplash ? 'none' : 'opacity 1.0s ease-in-out',
           opacity: showSplash ? 1.0 : 0.0,
           pointerEvents: showSplash ? 'auto' : 'none',
-          userSelect: 'none'
+          userSelect: 'none',
+          overflow: 'hidden'
         }}
       >
+        <img 
+          src={vaultGateImg} 
+          alt="M.E.G. Staging Entrance" 
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            filter: 'brightness(0.6) contrast(1.1) saturate(0.95)'
+          }}
+        />
+        
+        {/* Full Screen Vignette Shadow Overlay */}
         <div 
           style={{
-            position: 'relative',
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(circle, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%), linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.9) 100%)',
+            pointerEvents: 'none'
+          }}
+        />
+
+        {/* Floating Centered HUD Console Info */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '8%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px',
             width: '90%',
-            maxWidth: '560px',
-            aspectRatio: '1.2',
-            borderRadius: '6px',
-            border: '1px solid rgba(16, 185, 129, 0.25)',
-            overflow: 'hidden',
-            boxShadow: '0 0 50px rgba(0, 0, 0, 0.95)',
-            backgroundColor: '#000000'
+            maxWidth: '480px',
+            textAlign: 'center'
           }}
         >
-          <img 
-            src={vaultGateImg} 
-            alt="M.E.G. Staging Entrance" 
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              filter: 'brightness(0.7) contrast(1.1) saturate(0.9)'
-            }}
-          />
-          <div 
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%)',
-              pointerEvents: 'none'
-            }}
-          />
-          
           <div 
             className="animate-pulse"
             style={{
-              position: 'absolute',
-              bottom: '16px',
-              left: '16px',
               fontFamily: 'monospace',
-              fontSize: '9px',
+              fontSize: '10px',
               color: '#10b981',
               backgroundColor: 'rgba(0, 0, 0, 0.85)',
-              padding: '6px 10px',
-              border: '1px solid rgba(16, 185, 129, 0.2)',
+              padding: '8px 16px',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
               borderRadius: '4px',
-              letterSpacing: '0.1em'
+              letterSpacing: '0.15em',
+              boxShadow: '0 0 20px rgba(16, 185, 129, 0.25)',
+              textTransform: 'uppercase'
             }}
           >
             M.E.G. GATEWAY: INGRESS IN PROGRESS...
           </div>
+          
+          <div 
+            className="animate-pulse"
+            style={{
+              fontFamily: 'monospace',
+              fontSize: '9px',
+              color: 'rgba(16, 185, 129, 0.6)',
+              letterSpacing: '0.25em',
+              textTransform: 'uppercase',
+              textShadow: '0 0 5px rgba(0,0,0,0.8)'
+            }}
+          >
+            SYNCHRONIZING DIMENSIONAL LAYOUT... PLEASE WAIT
+          </div>
         </div>
-        
-        <div 
-          className="animate-pulse"
-          style={{
-            marginTop: '20px',
-            fontFamily: 'monospace',
-            fontSize: '10px',
-            color: 'rgba(16, 185, 129, 0.7)',
-            letterSpacing: '0.25em',
-            textTransform: 'uppercase'
-          }}
-        >
-          SYNCHRONIZING DIMENSIONAL LAYOUT... PLEASE WAIT
-        </div>
-      </div>
 
       {/* Retro CRT Scanline Flickers and Vignettes */}
       <div className="pointer-events-none fixed inset-0 z-50 bg-scanlines opacity-[0.03]" />
