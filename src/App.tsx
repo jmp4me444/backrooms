@@ -315,7 +315,7 @@ export default function App() {
       >
         <div className="relative w-[90%] max-w-xl aspect-[1.2] rounded border border-green-500/25 overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.95)] bg-black">
           <img 
-            src="/vault_gate.jpg" 
+            src="vault_gate.jpg" 
             alt="M.E.G. Staging Entrance" 
             className="w-full h-full object-cover brightness-[0.7] contrast-[1.1] saturate-[0.9]"
           />
