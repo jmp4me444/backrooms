@@ -889,17 +889,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       grid[MAP_SIZE - 3][MAP_SIZE - 3] = 4; // Fallback
     }
 
-    // Place exactly one Wall Window (5) adjacent to a walkable path
+    // Place exactly one Wall Window (5) in a walkable corridor next to a wall
     let windowWallPlaced = false;
     for (let offset = 0; offset < MAP_SIZE * MAP_SIZE; offset++) {
       const idx = (offset + scanOffset + 17) % (MAP_SIZE * MAP_SIZE);
       const x = Math.floor(idx / MAP_SIZE);
       const z = idx % MAP_SIZE;
-      if (x > 2 && z > 2 && x < MAP_SIZE - 3 && z < MAP_SIZE - 3) {
-        if (grid[x][z] === 1) {
-          const hasWalkableAdj = (grid[x-1][z] === 0) || (grid[x+1][z] === 0) || (grid[x][z-1] === 0) || (grid[x][z+1] === 0);
-          if (hasWalkableAdj) {
-            grid[x][z] = 5; // Wall Window!
+      if (x > 1 && z > 1 && x < MAP_SIZE - 2 && z < MAP_SIZE - 2) {
+        if (grid[x][z] === 0 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
+          // Check for an adjacent wall segment
+          const hasWallAdj = (grid[x-1][z] === 1) || (grid[x+1][z] === 1) || (grid[x][z-1] === 1) || (grid[x][z+1] === 1);
+          if (hasWallAdj) {
+            grid[x][z] = 5; // Walkable corridor cell containing a Wall Window!
             windowWallPlaced = true;
             break;
           }
@@ -907,13 +908,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
     }
 
-    // Place exactly one Floor Window (6) in a walkable corridor
+    // Place exactly one Floor Window (6) in a walkable corridor cell
     let windowFloorPlaced = false;
     for (let offset = 0; offset < MAP_SIZE * MAP_SIZE; offset++) {
       const idx = (offset + scanOffset + 43) % (MAP_SIZE * MAP_SIZE);
       const x = Math.floor(idx / MAP_SIZE);
       const z = idx % MAP_SIZE;
-      if (x > 2 && z > 2 && x < MAP_SIZE - 3 && z < MAP_SIZE - 3) {
+      if (x > 1 && z > 1 && x < MAP_SIZE - 2 && z < MAP_SIZE - 2) {
         if (grid[x][z] === 0 && !(x === 1 && z === 1) && !(x === 1 && z === 2) && !(x === 2 && z === 1)) {
           grid[x][z] = 6; // Floor Window!
           windowFloorPlaced = true;
@@ -1166,32 +1167,54 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const windowGroup = new THREE.Group();
           windowGroup.position.set(posX, 0, posZ);
 
+          // Detect adjacent wall direction to rotate/offset the window
+          let angle = 0;
+          let offX = 0;
+          let offZ = 0;
+          if (x > 0 && grid[x-1][z] === 1) {
+            angle = -Math.PI / 2;
+            offX = -CELL_SIZE / 2 + 0.15;
+          } else if (x < MAP_SIZE - 1 && grid[x+1][z] === 1) {
+            angle = Math.PI / 2;
+            offX = CELL_SIZE / 2 - 0.15;
+          } else if (z > 0 && grid[x][z-1] === 1) {
+            angle = Math.PI;
+            offZ = -CELL_SIZE / 2 + 0.15;
+          } else if (z < MAP_SIZE - 1 && grid[x][z+1] === 1) {
+            angle = 0;
+            offZ = CELL_SIZE / 2 - 0.15;
+          }
+
+          windowGroup.position.x += offX;
+          windowGroup.position.z += offZ;
+          windowGroup.rotation.y = angle;
+
           const frameMat = new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.8 }); // wooden trim
           
           const leftSide = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.5, 0.4), frameMat);
-          leftSide.position.set(-CELL_SIZE / 2 + 0.075, 3.5 / 2, 0);
+          leftSide.position.set(-1.0, 3.5 / 2, 0);
           leftSide.castShadow = true;
           
           const rightSide = new THREE.Mesh(new THREE.BoxGeometry(0.15, 3.5, 0.4), frameMat);
-          rightSide.position.set(CELL_SIZE / 2 - 0.075, 3.5 / 2, 0);
+          rightSide.position.set(1.0, 3.5 / 2, 0);
           rightSide.castShadow = true;
 
-          const topHeader = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE - 0.3, 0.8, 0.4), frameMat);
+          const topHeader = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 0.4), frameMat);
           topHeader.position.set(0, 3.5 - 0.4, 0);
           topHeader.castShadow = true;
           
-          const bottomHeader = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE - 0.3, 0.8, 0.4), frameMat);
+          const bottomHeader = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 0.4), frameMat);
           bottomHeader.position.set(0, 0.4, 0);
           bottomHeader.castShadow = true;
 
           // Glowing blue star window glass pane
-          const glassGeo = new THREE.BoxGeometry(CELL_SIZE - 0.3, 3.5 - 1.6, 0.08);
+          const glassGeo = new THREE.BoxGeometry(2.0, 3.5 - 1.6, 0.08);
           const glassMat = new THREE.MeshPhysicalMaterial({
             color: 0x00f0ff,
             emissive: 0x00aacc,
-            emissiveIntensity: 1.2,
+            emissiveIntensity: 1.5,
             transparent: true,
-            opacity: 0.65,
+            opacity: 0.7,
             roughness: 0.1,
             transmission: 0.9,
             thickness: 0.3
@@ -1207,26 +1230,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           windowGroup.position.set(posX, 0, posZ);
 
           const frameMat = new THREE.MeshStandardMaterial({ color: 0x212121, metalness: 0.8 }); // iron borders
+          const tSize = 1.6;
           
-          const bL = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, 0.05, 0.25), frameMat); bL.position.set(0, 0.025, -CELL_SIZE / 2 + 0.125);
-          const bR = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, 0.05, 0.25), frameMat); bR.position.set(0, 0.025, CELL_SIZE / 2 - 0.125);
-          const bA = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, CELL_SIZE - 0.5), frameMat); bA.position.set(-CELL_SIZE / 2 + 0.125, 0.025, 0);
-          const bB = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.05, CELL_SIZE - 0.5), frameMat); bB.position.set(CELL_SIZE / 2 - 0.125, 0.025, 0);
+          const bL = new THREE.Mesh(new THREE.BoxGeometry(tSize, 0.06, 0.1), frameMat); bL.position.set(0, 0.03, -tSize / 2 + 0.05);
+          const bR = new THREE.Mesh(new THREE.BoxGeometry(tSize, 0.06, 0.1), frameMat); bR.position.set(0, 0.03, tSize / 2 - 0.05);
+          const bA = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, tSize - 0.2), frameMat); bA.position.set(-tSize / 2 + 0.05, 0.03, 0);
+          const bB = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, tSize - 0.2), frameMat); bB.position.set(tSize / 2 - 0.05, 0.03, 0);
 
           // Glowing green glass trapdoor pane
-          const glassGeo = new THREE.BoxGeometry(CELL_SIZE - 0.5, 0.02, CELL_SIZE - 0.5);
+          const glassGeo = new THREE.BoxGeometry(tSize - 0.2, 0.02, tSize - 0.2);
           const glassMat = new THREE.MeshPhysicalMaterial({
             color: 0x39ff14,
             emissive: 0x00ff66,
-            emissiveIntensity: 1.5,
+            emissiveIntensity: 1.8,
             transparent: true,
-            opacity: 0.7,
+            opacity: 0.8,
             roughness: 0.1,
             transmission: 0.9,
             thickness: 0.3
           });
           const glass = new THREE.Mesh(glassGeo, glassMat);
-          glass.position.set(0, 0.01, 0);
+          glass.position.set(0, 0.02, 0);
 
           windowGroup.add(bL, bR, bA, bB, glass);
           mazeGroup.add(windowGroup);
