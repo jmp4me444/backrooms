@@ -1133,6 +1133,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             stairsGroup.add(postR);
           }
 
+          // Continuous slanted top handrails connecting the posts
+          const run = (numSteps - 1) * stepDepth;
+          const rise = (numSteps - 1) * stepHeight;
+          const length = Math.sqrt(run * run + rise * rise);
+          const pitch = Math.atan2(rise, run);
+
+          const zCenter = (-CELL_SIZE / 2 + (numSteps - 1) * stepDepth / 2) + stepDepth / 2;
+          const yCenter = (stepHeight * 1 + stepHeight * numSteps) / 2 + 1.0;
+
+          const leftHandrail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, length, 8), railMat);
+          leftHandrail.position.set(-stepWidth / 2 + 0.05, yCenter, zCenter);
+          leftHandrail.rotation.x = Math.PI / 2 - pitch;
+          leftHandrail.castShadow = true;
+          stairsGroup.add(leftHandrail);
+
+          const rightHandrail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, length, 8), railMat);
+          rightHandrail.position.set(stepWidth / 2 - 0.05, yCenter, zCenter);
+          rightHandrail.rotation.x = Math.PI / 2 - pitch;
+          rightHandrail.castShadow = true;
+          stairsGroup.add(rightHandrail);
+
           mazeGroup.add(stairsGroup);
         } else if (grid[x][z] === 5) {
           // Wall Window Portal
