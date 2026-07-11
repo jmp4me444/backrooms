@@ -1774,6 +1774,43 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         return group;
       };
 
+      const createLaundryPileMesh = () => {
+        const group = new THREE.Group();
+        const colors = [0xd2b48c, 0xf5f5dc, 0x708090, 0x4682b4, 0x8b0000, 0xeeeeee];
+        const numPieces = 5 + Math.floor(Math.random() * 3);
+        
+        for (let i = 0; i < numPieces; i++) {
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          const mat = new THREE.MeshStandardMaterial({
+            color: color,
+            roughness: 0.95,
+            metalness: 0.0
+          });
+          
+          let mesh;
+          if (i % 2 === 0) {
+            mesh = new THREE.Mesh(new THREE.BoxGeometry(0.35 + Math.random() * 0.25, 0.08 + Math.random() * 0.08, 0.35 + Math.random() * 0.25), mat);
+          } else {
+            mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2 + Math.random() * 0.15, 0.22 + Math.random() * 0.15, 0.06 + Math.random() * 0.06, 8), mat);
+          }
+          
+          const offsetX = (Math.random() - 0.5) * 0.25;
+          const offsetZ = (Math.random() - 0.5) * 0.25;
+          const offsetY = 0.02 + i * 0.05;
+          
+          mesh.position.set(offsetX, offsetY, offsetZ);
+          mesh.rotation.set(
+            (Math.random() - 0.5) * 0.4,
+            Math.random() * Math.PI,
+            (Math.random() - 0.5) * 0.4
+          );
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          group.add(mesh);
+        }
+        return group;
+      };
+
       const creators = [
         createChairMesh,
         createTableMesh,
@@ -1884,6 +1921,37 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           fuseBoxGroup.add(ledLight);
 
           scene.add(fuseBoxGroup);
+        }
+      }
+
+      // Spawn random piles of laundry in corners of corridors/rooms
+      for (let x = 1; x < MAP_SIZE - 1; x++) {
+        for (let z = 1; z < MAP_SIZE - 1; z++) {
+          if (grid[x][z] === 0) {
+            const hasNorth = grid[x][z - 1] === 1;
+            const hasSouth = grid[x][z + 1] === 1;
+            const hasWest = grid[x - 1][z] === 1;
+            const hasEast = grid[x + 1][z] === 1;
+            
+            const corners: { dx: number; dz: number }[] = [];
+            if (hasNorth && hasWest) corners.push({ dx: -CELL_SIZE / 2 + 0.6, dz: -CELL_SIZE / 2 + 0.6 });
+            if (hasNorth && hasEast) corners.push({ dx: CELL_SIZE / 2 - 0.6, dz: -CELL_SIZE / 2 + 0.6 });
+            if (hasSouth && hasWest) corners.push({ dx: -CELL_SIZE / 2 + 0.6, dz: CELL_SIZE / 2 - 0.6 });
+            if (hasSouth && hasEast) corners.push({ dx: CELL_SIZE / 2 - 0.6, dz: CELL_SIZE / 2 - 0.6 });
+            
+            if (corners.length > 0) {
+              const seedVal = seedNum + x * 12.3 + z * 45.7;
+              const randVal = Math.abs(Math.sin(seedVal)) % 1;
+              // 15% chance to spawn a laundry pile in a corner of this cell
+              if (randVal < 0.15) {
+                const cornerIndex = Math.floor(randVal * 100) % corners.length;
+                const corner = corners[cornerIndex];
+                const pile = createLaundryPileMesh();
+                pile.position.set(x * CELL_SIZE + corner.dx, 0, z * CELL_SIZE + corner.dz);
+                scene.add(pile);
+              }
+            }
+          }
         }
       }
     };
