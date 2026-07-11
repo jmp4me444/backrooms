@@ -2080,11 +2080,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // Spawn random standing mannequins on some levels (40% level chance)
+      // Spawn random standing mannequins on all levels (scattered in random corridors)
       const levelSeed = seedNum;
-      const hasMannequins = (Math.abs(Math.sin(levelSeed * 14.85)) % 1) < 0.4;
+      const hasMannequins = true;
       if (hasMannequins) {
-        const mannequinCount = 2 + Math.floor((Math.abs(Math.sin(levelSeed * 3.25)) % 1) * 4); // 2 to 5 mannequins
+        const mannequinCount = 3 + Math.floor((Math.abs(Math.sin(levelSeed * 3.25)) % 1) * 3); // 3 to 5 mannequins
         let spawned = 0;
         
         for (let attempt = 0; attempt < 40 && spawned < mannequinCount; attempt++) {
