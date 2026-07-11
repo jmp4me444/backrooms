@@ -104,7 +104,7 @@ class SoundSynthesizer {
     const harmonics = [1, 2, 3, 5, 8];
     
     this.humGain = ctx.createGain();
-    this.humGain.gain.setValueAtTime(0.15, ctx.currentTime);
+    this.humGain.gain.setValueAtTime(0.40, ctx.currentTime); // Louder base hum (increased from 0.15)
     this.humGain.connect(this.masterGain!);
     
     harmonics.forEach((h, index) => {
@@ -113,8 +113,8 @@ class SoundSynthesizer {
       osc.frequency.setValueAtTime(baseFreq * h, ctx.currentTime);
       
       const gain = ctx.createGain();
-      // Higher harmonics are quieter
-      gain.gain.setValueAtTime(0.08 / (h * 0.8), ctx.currentTime);
+      // Higher harmonics are quieter but scaled up for thickness
+      gain.gain.setValueAtTime(0.20 / (h * 0.8), ctx.currentTime); // Louder harmonics (increased from 0.08)
       
       osc.connect(gain);
       gain.connect(this.humGain!);
@@ -128,7 +128,7 @@ class SoundSynthesizer {
     const lfo = ctx.createOscillator();
     const lfoGain = ctx.createGain();
     lfo.frequency.setValueAtTime(8, ctx.currentTime); // 8Hz flicker
-    lfoGain.gain.setValueAtTime(1.5, ctx.currentTime); // strength of frequency flicker
+    lfoGain.gain.setValueAtTime(2.0, ctx.currentTime); // slightly stronger frequency buzz
     
     lfo.connect(lfoGain);
     this.humOscillators.forEach(osc => {
@@ -141,7 +141,7 @@ class SoundSynthesizer {
     const volumeLfo = ctx.createOscillator();
     const volumeLfoGain = ctx.createGain();
     volumeLfo.frequency.setValueAtTime(15, ctx.currentTime);
-    volumeLfoGain.gain.setValueAtTime(0.04, ctx.currentTime);
+    volumeLfoGain.gain.setValueAtTime(0.06, ctx.currentTime); // slightly deeper flutter
     volumeLfo.connect(volumeLfoGain);
     volumeLfoGain.connect(this.humGain.gain);
     volumeLfo.start();
@@ -155,14 +155,14 @@ class SoundSynthesizer {
       const now = ctx.currentTime;
       const duration = 0.05 + Math.random() * 0.15; // 50ms - 200ms sputter duration
       
-      // Sputter the main hum volume down to near-silence, then ramp it back up
+      // Sputter the main hum volume down to near-silence, then ramp it back up to 0.40
       try {
-        this.humGain.gain.setValueAtTime(0.15, now);
+        this.humGain.gain.setValueAtTime(0.40, now);
         this.humGain.gain.exponentialRampToValueAtTime(0.002, now + 0.015);
         this.humGain.gain.setValueAtTime(0.002, now + duration);
-        this.humGain.gain.exponentialRampToValueAtTime(0.15, now + duration + 0.02);
+        this.humGain.gain.exponentialRampToValueAtTime(0.40, now + duration + 0.02);
       } catch (e) {
-        if (this.humGain) this.humGain.gain.value = 0.15;
+        if (this.humGain) this.humGain.gain.value = 0.40;
       }
 
       // Generate a sharp electric "crack/snap" oscillator burst
@@ -170,16 +170,20 @@ class SoundSynthesizer {
         const clickOsc = ctx.createOscillator();
         const clickGain = ctx.createGain();
         clickOsc.type = 'triangle';
-        clickOsc.frequency.setValueAtTime(120 + Math.random() * 380, now);
+        clickOsc.frequency.setValueAtTime(150 + Math.random() * 550, now); // wider crispier frequency range
         
-        clickGain.gain.setValueAtTime(0.12, now);
-        clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+        clickGain.gain.setValueAtTime(0.50, now); // Louder snap (increased from 0.12)
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
         
         clickOsc.connect(clickGain);
         clickGain.connect(this.masterGain!);
+        // Send the snap through the feedback delay network for hallway corridor echo
+        if (this.delayNode) {
+          clickGain.connect(this.delayNode);
+        }
         
         clickOsc.start(now);
-        clickOsc.stop(now + 0.04);
+        clickOsc.stop(now + 0.05);
       } catch (e) {}
 
       // Schedule the next random flicker event (between 1.5 and 6 seconds)
