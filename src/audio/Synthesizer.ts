@@ -165,26 +165,7 @@ class SoundSynthesizer {
         if (this.humGain) this.humGain.gain.value = 0.40;
       }
 
-      // Generate a sharp electric "crack/snap" oscillator burst
-      try {
-        const clickOsc = ctx.createOscillator();
-        const clickGain = ctx.createGain();
-        clickOsc.type = 'triangle';
-        clickOsc.frequency.setValueAtTime(150 + Math.random() * 550, now); // wider crispier frequency range
-        
-        clickGain.gain.setValueAtTime(0.50, now); // Louder snap (increased from 0.12)
-        clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-        
-        clickOsc.connect(clickGain);
-        clickGain.connect(this.masterGain!);
-        // Send the snap through the feedback delay network for hallway corridor echo
-        if (this.delayNode) {
-          clickGain.connect(this.delayNode);
-        }
-        
-        clickOsc.start(now);
-        clickOsc.stop(now + 0.05);
-      } catch (e) {}
+
 
       // Schedule the next random flicker event (between 1.5 and 6 seconds)
       const nextDelay = 1500 + Math.random() * 4500;
