@@ -86,6 +86,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     isSwingingRef.current = true;
     hasHitThisSwingRef.current = false;
     swingStartTimeRef.current = performance.now();
+    if (hammerRef.current) {
+      hammerRef.current.visible = true;
+    }
     Synthesizer.triggerSwingWhoosh();
   };
 
@@ -666,6 +669,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (k === 'f') {
         setFlashlightOn(prev => !prev);
       }
+
+      // Swing/Invoke Hammer (H)
+      if (k === 'h') {
+        triggerHammerSwing();
+      }
       
       // Trigger Item Inspection (E)
       if (k === 'e' && activeItemNear) {
@@ -701,9 +709,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       isDraggingRef.current = true;
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
-      }
-      if (e.button === 0) { // Left click
-        triggerHammerSwing();
       }
     };
 
@@ -1759,6 +1764,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Rest position closer and slightly tilted in viewport
     hammer.position.set(0.18, -0.18, -0.35);
     hammer.rotation.set(-0.5, -Math.PI / 3, 0.2);
+    hammer.visible = false; // Hidden by default until invoked
     camera.add(hammer);
     hammerRef.current = hammer;
 
@@ -3053,14 +3059,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }
           } else {
             isSwingingRef.current = false;
+            hammer.visible = false;
             // Reset to rest position
             hammer.position.set(0.18, -0.18, -0.35);
             hammer.rotation.set(-0.5, -Math.PI / 3, 0.2);
           }
         } else {
-          // Subtle idle breathing motion
-          const breathe = Math.sin(elapsedTime * 1.5) * 0.005;
-          hammer.position.y = -0.18 + breathe;
+          hammer.visible = false;
         }
       }
 
