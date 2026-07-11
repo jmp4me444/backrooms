@@ -227,6 +227,13 @@ export default function App() {
               })}
             </div>
           </div>
+
+          <div className="text-[9px] text-green-500/40 text-center font-mono mt-3.5 uppercase tracking-wider select-none shrink-0 border-t border-green-500/10 pt-3">
+            [ Melee Controls ]
+            <div className="text-[8px] text-green-400 mt-1">
+              PRESS "H" KEY OR USE ON-SCREEN TOUCH BUTTON TO SWING HAMMER & SMASH DECORATIVE OBJECTS
+            </div>
+          </div>
         </div>
       </div>
     );
