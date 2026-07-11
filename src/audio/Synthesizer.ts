@@ -15,6 +15,7 @@ class SoundSynthesizer {
   
   private currentSoundType: string = 'none';
   private volumeLevel: number = 0.5;
+  private flickerTimeout: number | null = null;
 
   init() {
     if (this.audioCtx) return;
@@ -59,6 +60,11 @@ class SoundSynthesizer {
     this.intervals.forEach(clearInterval);
     this.intervals = [];
     
+    if (this.flickerTimeout !== null) {
+      clearTimeout(this.flickerTimeout);
+      this.flickerTimeout = null;
+    }
+
     this.activeNodes.forEach(node => {
       try {
         (node as any).stop?.();
@@ -88,29 +94,8 @@ class SoundSynthesizer {
 
     const ctx = this.audioCtx;
 
-    switch (type) {
-      case 'hum':
-        this.createFluorescentHum(ctx);
-        break;
-      case 'drips':
-        this.createWaterDrips(ctx);
-        break;
-      case 'drone':
-        this.createIndustrialDrone(ctx);
-        break;
-      case 'beeps':
-        this.createHospitalBeeps(ctx);
-        break;
-      case 'synth':
-        this.createRetroSynthPad(ctx);
-        break;
-      case 'crickets':
-        this.createCrickets(ctx);
-        break;
-      case 'static':
-        this.createTvStatic(ctx);
-        break;
-    }
+    // Route every level ambient style to play the flickering fluorescent hum
+    this.createFluorescentHum(ctx);
   }
 
   private createFluorescentHum(ctx: AudioContext) {
@@ -161,6 +146,49 @@ class SoundSynthesizer {
     volumeLfoGain.connect(this.humGain.gain);
     volumeLfo.start();
     this.activeNodes.push(volumeLfo);
+
+    // Recursive random sputter/flicker simulating a light about to go out
+    const triggerFlicker = () => {
+      // Check if we are still active and playing
+      if (this.currentSoundType === 'none' || !this.humGain) return;
+
+      const now = ctx.currentTime;
+      const duration = 0.05 + Math.random() * 0.15; // 50ms - 200ms sputter duration
+      
+      // Sputter the main hum volume down to near-silence, then ramp it back up
+      try {
+        this.humGain.gain.setValueAtTime(0.15, now);
+        this.humGain.gain.exponentialRampToValueAtTime(0.002, now + 0.015);
+        this.humGain.gain.setValueAtTime(0.002, now + duration);
+        this.humGain.gain.exponentialRampToValueAtTime(0.15, now + duration + 0.02);
+      } catch (e) {
+        if (this.humGain) this.humGain.gain.value = 0.15;
+      }
+
+      // Generate a sharp electric "crack/snap" oscillator burst
+      try {
+        const clickOsc = ctx.createOscillator();
+        const clickGain = ctx.createGain();
+        clickOsc.type = 'triangle';
+        clickOsc.frequency.setValueAtTime(120 + Math.random() * 380, now);
+        
+        clickGain.gain.setValueAtTime(0.12, now);
+        clickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.025);
+        
+        clickOsc.connect(clickGain);
+        clickGain.connect(this.masterGain!);
+        
+        clickOsc.start(now);
+        clickOsc.stop(now + 0.04);
+      } catch (e) {}
+
+      // Schedule the next random flicker event (between 1.5 and 6 seconds)
+      const nextDelay = 1500 + Math.random() * 4500;
+      this.flickerTimeout = window.setTimeout(triggerFlicker, nextDelay);
+    };
+
+    // Trigger the initial flicker loop after a brief delay
+    this.flickerTimeout = window.setTimeout(triggerFlicker, 2000);
   }
 
   private createWaterDrips(ctx: AudioContext) {
