@@ -208,8 +208,124 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
   };
 
-  // Procedural canvas textures
-  const createProceduralTexture = (type: string, baseColor: string, isWall: boolean = false): THREE.Texture => {
+  // Generate normal map using Sobel filter from a texture canvas
+  const generateNormalMapFromCanvas = (srcCanvas: HTMLCanvasElement, bumpScale: number = 2.0): THREE.Texture => {
+    const width = srcCanvas.width;
+    const height = srcCanvas.height;
+    const normCanvas = document.createElement('canvas');
+    normCanvas.width = width;
+    normCanvas.height = height;
+    const normCtx = normCanvas.getContext('2d')!;
+
+    const srcCtx = srcCanvas.getContext('2d')!;
+    const imgData = srcCtx.getImageData(0, 0, width, height);
+    const pixels = imgData.data;
+
+    const getLuminance = (x: number, y: number): number => {
+      const px = (x + width) % width;
+      const py = (y + height) % height;
+      const idx = (py * width + px) * 4;
+      return (pixels[idx] * 0.299 + pixels[idx+1] * 0.587 + pixels[idx+2] * 0.114) / 255;
+    };
+
+    const normImgData = normCtx.createImageData(width, height);
+    const normPixels = normImgData.data;
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const l = getLuminance(x - 1, y);
+        const r = getLuminance(x + 1, y);
+        const t = getLuminance(x, y - 1);
+        const b = getLuminance(x, y + 1);
+
+        const dx = (r - l) * bumpScale;
+        const dy = (b - t) * bumpScale;
+
+        const len = Math.sqrt(dx * dx + dy * dy + 1.0);
+        const nx = dx / len;
+        const ny = dy / len;
+        const nz = 1.0 / len;
+
+        const idx = (y * width + x) * 4;
+        normPixels[idx] = Math.round((nx * 0.5 + 0.5) * 255);
+        normPixels[idx+1] = Math.round((ny * 0.5 + 0.5) * 255);
+        normPixels[idx+2] = Math.round((nz * 0.5 + 0.5) * 255);
+        normPixels[idx+3] = 255;
+      }
+    }
+
+    normCtx.putImageData(normImgData, 0, 0);
+
+    const texture = new THREE.CanvasTexture(normCanvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
+  };
+
+  // Generate roughness map canvas from a texture
+  const generateRoughnessMap = (type: string, baseColor: string, size: number): THREE.Texture => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+
+    if (type === 'tiles' || type === 'hospital') {
+      // Tiles are glossy (roughness 0.15 = value 38), grout is rough (roughness 0.9 = value 230)
+      ctx.fillStyle = 'rgba(230, 230, 230, 1)';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = 'rgba(38, 38, 38, 1)';
+      for (let i = 0; i < size; i += 64) {
+        for (let j = 0; j < size; j += 64) {
+          ctx.fillRect(i + 2, j + 2, 60, 60);
+        }
+      }
+    } else if (type === 'concrete') {
+      // Concrete is mostly rough (roughness 0.85 = value 216) with some glossy patches (value 50)
+      ctx.fillStyle = 'rgba(216, 216, 216, 1)';
+      ctx.fillRect(0, 0, size, size);
+      // Puddles/dark spots
+      ctx.fillStyle = 'rgba(50, 50, 50, 0.4)';
+      for (let i = 0; i < 5; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * size, Math.random() * size, 15 + Math.random() * 30, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (type === 'metal') {
+      // Metal sheets: specular (roughness 0.35 = value 90)
+      ctx.fillStyle = 'rgba(90, 90, 90, 1)';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = 'rgba(200, 200, 200, 0.3)'; // rougher rust/grime spots
+      for (let i = 0; i < 12; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * size, Math.random() * size, 10 + Math.random() * 20, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      // Default wallpaper or other textures: general matte finish (roughness 0.8 = value 204)
+      ctx.fillStyle = 'rgba(204, 204, 204, 1)';
+      ctx.fillRect(0, 0, size, size);
+      // Add subtle noise
+      for (let i = 0; i < 1500; i++) {
+        const val = 180 + Math.floor(Math.random() * 48);
+        ctx.fillStyle = `rgba(${val}, ${val}, ${val}, 0.08)`;
+        ctx.fillRect(Math.random() * size, Math.random() * size, 2, 2);
+      }
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    return texture;
+  };
+
+  interface ProceduralMaps {
+    map: THREE.Texture;
+    normalMap: THREE.Texture;
+    roughnessMap: THREE.Texture;
+  }
+
+  // Procedural canvas PBR map bundle builder
+  const createProceduralMaps = (type: string, baseColor: string, isWall: boolean = false): ProceduralMaps => {
     const size = 256;
     const canvas = document.createElement('canvas');
     canvas.width = size;
@@ -224,7 +340,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const words = query.split(/[\s,]+/);
 
       if (words.includes('rainbow')) {
-        // Rainbow wallpaper
         const grad = ctx.createLinearGradient(0, 0, size, 0);
         grad.addColorStop(0, '#ff3b30');
         grad.addColorStop(0.17, '#ff9500');
@@ -235,7 +350,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         grad.addColorStop(1.0, '#5856d6');
         ctx.fillStyle = grad;
         ctx.fillRect(0, 0, size, size);
-        
         ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
         for (let i = 32; i < size; i += 64) {
           ctx.beginPath();
@@ -244,20 +358,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           ctx.arc(i + 24, 40, 15, 0, Math.PI * 2);
           ctx.fill();
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['stripe', 'stripes', 'striped'].includes(w))) {
+      else if (words.some(w => ['stripe', 'stripes', 'striped'].includes(w))) {
         ctx.fillStyle = baseColor;
         ctx.fillRect(0, 0, size, size);
         ctx.fillStyle = 'rgba(0,0,0,0.15)';
         for (let i = 0; i < size; i += 32) {
           ctx.fillRect(i, 0, 16, size);
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['grid', 'grids'].includes(w))) {
+      else if (words.some(w => ['grid', 'grids'].includes(w))) {
         ctx.fillStyle = baseColor;
         ctx.fillRect(0, 0, size, size);
         ctx.strokeStyle = 'rgba(0,255,0,0.2)';
@@ -266,10 +376,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
           ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['brick', 'bricks', 'brickwork'].includes(w))) {
+      else if (words.some(w => ['brick', 'bricks', 'brickwork'].includes(w))) {
         ctx.fillStyle = '#b23b3b';
         ctx.fillRect(0, 0, size, size);
         ctx.strokeStyle = '#e2c5c5';
@@ -290,10 +398,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }
           }
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['polka', 'dots', 'spotted', 'dot'].includes(w))) {
+      else if (words.some(w => ['polka', 'dots', 'spotted', 'dot'].includes(w))) {
         ctx.fillStyle = baseColor;
         ctx.fillRect(0, 0, size, size);
         ctx.fillStyle = '#ffffff';
@@ -305,10 +411,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             ctx.fill();
           }
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['glitch', 'static', 'matrix', 'noise', 'digital'].includes(w))) {
+      else if (words.some(w => ['glitch', 'static', 'matrix', 'noise', 'digital'].includes(w))) {
         ctx.fillStyle = '#050906';
         ctx.fillRect(0, 0, size, size);
         ctx.fillStyle = '#10b981';
@@ -319,10 +423,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             ctx.fillText(char, i, j);
           }
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['star', 'stars', 'starry', 'space'].includes(w))) {
+      else if (words.some(w => ['star', 'stars', 'starry', 'space'].includes(w))) {
         ctx.fillStyle = '#0b0f19';
         ctx.fillRect(0, 0, size, size);
         ctx.fillStyle = '#ffdf00';
@@ -332,10 +434,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           ctx.fillRect(sx - 2, sy, 5, 1);
           ctx.fillRect(sx, sy - 2, 1, 5);
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['flower', 'flowers', 'floral', 'garden'].includes(w))) {
+      else if (words.some(w => ['flower', 'flowers', 'floral', 'garden'].includes(w))) {
         ctx.fillStyle = '#fce4ec';
         ctx.fillRect(0, 0, size, size);
         const drawFlower = (fx: number, fy: number) => {
@@ -355,10 +455,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             drawFlower(i, j);
           }
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['wood', 'planks', 'wooden'].includes(w))) {
+      else if (words.some(w => ['wood', 'planks', 'wooden'].includes(w))) {
         ctx.fillStyle = '#a1785c';
         ctx.fillRect(0, 0, size, size);
         ctx.strokeStyle = '#4a2f1b';
@@ -373,10 +471,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           ctx.arc(i, size / 2, size / 1.5, 0, Math.PI * 2);
           ctx.stroke();
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['heart', 'hearts', 'love'].includes(w))) {
+      else if (words.some(w => ['heart', 'hearts', 'love'].includes(w))) {
         ctx.fillStyle = '#ffeb3b';
         ctx.fillRect(0, 0, size, size);
         ctx.fillStyle = '#e91e63';
@@ -393,10 +489,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             drawHeart((i + offset) % size, j);
           }
         }
-        return new THREE.CanvasTexture(canvas);
       }
-
-      if (words.some(w => ['checker', 'checkers', 'checkerboard'].includes(w))) {
+      else if (words.some(w => ['checker', 'checkers', 'checkerboard'].includes(w))) {
         ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, size, size);
         ctx.fillStyle = '#000000';
@@ -408,12 +502,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }
           }
         }
-        return new THREE.CanvasTexture(canvas);
       }
     }
 
     if (type === 'default') {
-      // Level 0 Wallpaper: vertical stripes and subtle grid patterns
       ctx.fillStyle = '#b3a078';
       for (let i = 0; i < size; i += 16) {
         ctx.fillRect(i, 0, 2, size);
@@ -421,7 +513,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       ctx.fillStyle = '#9e8c66';
       for (let i = 0; i < size; i += 32) {
         for (let j = 0; j < size; j += 32) {
-          // Draw tiny diamond pattern
           ctx.beginPath();
           ctx.moveTo(i + 8, j);
           ctx.lineTo(i + 16, j + 8);
@@ -432,7 +523,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
     } else if (type === 'concrete') {
-      // Rough concrete: speckles and cracks
       ctx.fillStyle = 'rgba(255,255,255,0.05)';
       for (let i = 0; i < 2000; i++) {
         const x = Math.random() * size;
@@ -445,7 +535,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const y = Math.random() * size;
         ctx.fillRect(x, y, 1 + Math.random() * 2, 1 + Math.random() * 2);
       }
-      // Cracks
       ctx.strokeStyle = 'rgba(0,0,0,0.3)';
       ctx.lineWidth = 1;
       for (let k = 0; k < 3; k++) {
@@ -461,7 +550,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.stroke();
       }
     } else if (type === 'tiles' || type === 'hospital') {
-      // Classic wall tiles & ceiling tiles grid lines
       const isCeilingBeige = baseColor === '#ccbe9f' || baseColor === '#d6cbac';
       ctx.strokeStyle = isCeilingBeige 
         ? 'rgba(0,0,0,0.22)' 
@@ -470,17 +558,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           : 'rgba(255,255,255,0.4)';
       ctx.lineWidth = isCeilingBeige ? 1 : 2;
       for (let i = 0; i <= size; i += 64) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, size);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(size, i);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
       }
       if (!isCeilingBeige) {
-        // Highlight/bevel effect
         ctx.fillStyle = 'rgba(255,255,255,0.1)';
         for (let i = 0; i < size; i += 64) {
           ctx.fillRect(i + 2, 2, 60, 4);
@@ -488,18 +569,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
     } else if (type === 'metal') {
-      // Industrial riveted sheets
       ctx.strokeStyle = '#2b2623';
       ctx.lineWidth = 3;
       ctx.strokeRect(0, 0, size, size);
       ctx.beginPath();
-      ctx.moveTo(size / 2, 0);
-      ctx.lineTo(size / 2, size);
-      ctx.moveTo(0, size / 2);
-      ctx.lineTo(size, size / 2);
+      ctx.moveTo(size / 2, 0); ctx.lineTo(size / 2, size);
+      ctx.moveTo(0, size / 2); ctx.lineTo(size, size / 2);
       ctx.stroke();
       
-      // Rivets at intersections and corners
       ctx.fillStyle = '#1c1816';
       const rivets = [
         [15, 15], [size / 2 - 15, 15], [size / 2 + 15, 15], [size - 15, 15],
@@ -508,65 +585,41 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         [15, size - 15], [size / 2 - 15, size - 15], [size / 2 + 15, size - 15], [size - 15, size - 15]
       ];
       rivets.forEach(([rx, ry]) => {
-        ctx.beginPath();
-        ctx.arc(rx, ry, 4, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(rx, ry, 4, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#6e635c';
-        ctx.beginPath();
-        ctx.arc(rx - 1, ry - 1, 1.5, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(rx - 1, ry - 1, 1.5, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#1c1816';
       });
     } else if (type === 'brick') {
-      // Red-brownish brick rows
       ctx.strokeStyle = '#1d1f18';
       ctx.lineWidth = 2;
       const brickH = 32;
       const brickW = 64;
       for (let y = 0; y < size; y += brickH) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(size, y);
-        ctx.stroke();
-        
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
         const offset = (y / brickH) % 2 === 0 ? 0 : brickW / 2;
         for (let x = offset; x < size + brickW; x += brickW) {
-          ctx.beginPath();
-          ctx.moveTo(x % size, y);
-          ctx.lineTo(x % size, y + brickH);
-          ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(x % size, y); ctx.lineTo(x % size, y + brickH); ctx.stroke();
         }
       }
-      // Add mossy green tint spots
       ctx.fillStyle = 'rgba(64,80,36,0.3)';
       for (let i = 0; i < 15; i++) {
-        ctx.beginPath();
-        ctx.arc(Math.random() * size, Math.random() * size, 10 + Math.random() * 20, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(Math.random() * size, Math.random() * size, 10 + Math.random() * 20, 0, Math.PI * 2); ctx.fill();
       }
     } else if (type === 'cyber') {
-      // Futuristic neon grids
       ctx.fillStyle = '#06000c';
       ctx.fillRect(0, 0, size, size);
       ctx.strokeStyle = '#d633ff';
       ctx.lineWidth = 1;
       for (let i = 0; i < size; i += 32) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, size);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(size, i);
-        ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
       }
-      // Neon glow spots
       ctx.fillStyle = '#00f0ff';
       for (let i = 0; i < size; i += 64) {
         ctx.fillRect(i + 30, i + 30, 4, 4);
       }
     } else if (type === 'carpet') {
-      // Level 0 Carpet: dense tiny particles
       ctx.fillStyle = 'rgba(0,0,0,0.12)';
       for (let i = 0; i < 4000; i++) {
         ctx.fillRect(Math.random() * size, Math.random() * size, 1.5, 1.5);
@@ -575,38 +628,26 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       for (let i = 0; i < 3000; i++) {
         ctx.fillRect(Math.random() * size, Math.random() * size, 1.5, 1.5);
       }
-      // Water stains
       ctx.fillStyle = 'rgba(100, 85, 55, 0.2)';
       for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.arc(Math.random() * size, Math.random() * size, 8 + Math.random() * 24, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.beginPath(); ctx.arc(Math.random() * size, Math.random() * size, 8 + Math.random() * 24, 0, Math.PI * 2); ctx.fill();
       }
     } else if (type === 'wood') {
-      // Wood boards
       const boardH = 64;
       ctx.strokeStyle = '#1e1b12';
       ctx.lineWidth = 3;
       for (let y = 0; y < size; y += boardH) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(size, y);
-        ctx.stroke();
-        
-        // Draw wood grain lines
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(size, y); ctx.stroke();
         ctx.strokeStyle = 'rgba(255,255,255,0.05)';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.moveTo(0, y + 15);
-        ctx.bezierCurveTo(size * 0.25, y + 5, size * 0.75, y + 25, size, y + 15);
-        ctx.moveTo(0, y + 45);
-        ctx.bezierCurveTo(size * 0.25, y + 55, size * 0.75, y + 35, size, y + 45);
+        ctx.moveTo(0, y + 15); ctx.bezierCurveTo(size * 0.25, y + 5, size * 0.75, y + 25, size, y + 15);
+        ctx.moveTo(0, y + 45); ctx.bezierCurveTo(size * 0.25, y + 55, size * 0.75, y + 35, size, y + 45);
         ctx.stroke();
         ctx.strokeStyle = '#1e1b12';
         ctx.lineWidth = 3;
       }
     } else if (type === 'circus') {
-      // Circus Red/White vertical stripes
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = '#d32f2f';
@@ -620,7 +661,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, size, size);
     } else if (type === 'checkerboard') {
-      // Red and Yellow checkerboard floor
       ctx.fillStyle = '#fbc02d';
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = '#d32f2f';
@@ -639,7 +679,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
       }
     } else if (type === 'matrix') {
-      // Matrix falling binary code
       ctx.fillStyle = '#030603';
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = '#00ff66';
@@ -652,11 +691,32 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
     }
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(1, 1);
-    return texture;
+    // Clone canvas to apply high-frequency normal bump details
+    const bumpCanvas = document.createElement('canvas');
+    bumpCanvas.width = size;
+    bumpCanvas.height = size;
+    const bumpCtx = bumpCanvas.getContext('2d')!;
+    bumpCtx.drawImage(canvas, 0, 0);
+
+    // Apply granular plaster noise grain to walls/plaster
+    const isSpecialMat = type === 'cyber' || type === 'matrix';
+    const isWaterFloor = type === 'water';
+    if (!isSpecialMat && !isWaterFloor) {
+      bumpCtx.fillStyle = 'rgba(128, 128, 128, 0.12)';
+      for (let i = 0; i < 2500; i++) {
+        bumpCtx.fillRect(Math.random() * size, Math.random() * size, 1.5, 1.5);
+      }
+    }
+
+    const map = new THREE.CanvasTexture(canvas);
+    map.wrapS = THREE.RepeatWrapping;
+    map.wrapT = THREE.RepeatWrapping;
+
+    const normalScale = (type === 'concrete' || type === 'brick' || type === 'wood') ? 3.2 : 1.6;
+    const normalMap = generateNormalMapFromCanvas(bumpCanvas, normalScale);
+    const roughnessMap = generateRoughnessMap(type, baseColor, size);
+
+    return { map, normalMap, roughnessMap };
   };
 
   // Keyboard controls
@@ -951,6 +1011,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
     rendererRef.current = renderer;
 
     // 2. Generate Maze Logic Array
@@ -1038,28 +1100,42 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     mapGridRef.current = grid;
 
     // 3. Procedural Materials
-    const wallTex = createProceduralTexture(theme.wallTexture, theme.wallColor, true);
-    const floorTex = createProceduralTexture(theme.floorTexture, theme.floorColor, false);
-    const ceilTex = createProceduralTexture(theme.ceilingTexture, theme.ceilingColor, false);
+    const wallMaps = createProceduralMaps(theme.wallTexture, theme.wallColor, true);
+    const floorMaps = createProceduralMaps(theme.floorTexture, theme.floorColor, false);
+    const ceilMaps = createProceduralMaps(theme.ceilingTexture, theme.ceilingColor, false);
 
     // Make textures repeat correctly
-    wallTex.repeat.set(1, 1);
-    floorTex.repeat.set(1.5, 1.5);
-    ceilTex.repeat.set(1.5, 1.5);
+    wallMaps.map.repeat.set(1, 1);
+    wallMaps.normalMap.repeat.set(1, 1);
+    wallMaps.roughnessMap.repeat.set(1, 1);
+
+    floorMaps.map.repeat.set(1.5, 1.5);
+    floorMaps.normalMap.repeat.set(1.5, 1.5);
+    floorMaps.roughnessMap.repeat.set(1.5, 1.5);
+
+    ceilMaps.map.repeat.set(1.5, 1.5);
+    ceilMaps.normalMap.repeat.set(1.5, 1.5);
+    ceilMaps.roughnessMap.repeat.set(1.5, 1.5);
 
     const wallMat = new THREE.MeshStandardMaterial({
-      map: wallTex,
-      roughness: 0.8,
-      metalness: theme.wallTexture === 'metal' ? 0.8 : 0.1,
+      map: wallMaps.map,
+      normalMap: wallMaps.normalMap,
+      normalScale: new THREE.Vector2(0.35, 0.35),
+      roughnessMap: wallMaps.roughnessMap,
+      metalness: theme.wallTexture === 'metal' ? 0.85 : 0.05,
     });
     const floorMat = new THREE.MeshStandardMaterial({
-      map: floorTex,
-      roughness: theme.floorTexture === 'water' ? 0.05 : 0.9,
-      metalness: theme.floorTexture === 'water' ? 0.3 : 0.05,
+      map: floorMaps.map,
+      normalMap: floorMaps.normalMap,
+      normalScale: new THREE.Vector2(0.4, 0.4),
+      roughnessMap: floorMaps.roughnessMap,
+      metalness: theme.floorTexture === 'water' ? 0.35 : 0.05,
     });
     const ceilMat = new THREE.MeshStandardMaterial({
-      map: ceilTex,
-      roughness: 0.7,
+      map: ceilMaps.map,
+      normalMap: ceilMaps.normalMap,
+      normalScale: new THREE.Vector2(0.25, 0.25),
+      roughnessMap: ceilMaps.roughnessMap,
     });
 
     // 4. Construct Room Geometries
@@ -1118,6 +1194,21 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const ceilingLightsList: LightState[] = [];
     const lightPanelGeo = new THREE.PlaneGeometry(1.2, 1.2);
 
+    const isPoolTheme = theme.name.toLowerCase().includes('pool');
+    const trimMat = new THREE.MeshStandardMaterial({
+      color: isPoolTheme ? '#cfd6df' : '#2e1e12', // light vinyl or dark wood
+      roughness: isPoolTheme ? 0.35 : 0.7,
+      metalness: isPoolTheme ? 0.1 : 0.0,
+    });
+
+    const isWalkable = (cx: number, cz: number) => {
+      if (cx < 0 || cx >= MAP_SIZE || cz < 0 || cz >= MAP_SIZE) return false;
+      return grid[cx][cz] === 0 || grid[cx][cz] === 3;
+    };
+
+    const trimH = 0.12;
+    const trimThick = 0.025;
+
     // Build grid cells once
     for (let x = 0; x < MAP_SIZE; x++) {
       for (let z = 0; z < MAP_SIZE; z++) {
@@ -1131,6 +1222,28 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           mazeGroup.add(mesh);
+
+          // Spawn baseboards on visible faces
+          if (isWalkable(x, z + 1)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, trimH, trimThick), trimMat);
+            b.position.set(posX, trimH / 2, posZ + CELL_SIZE / 2 + trimThick / 2);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
+          if (isWalkable(x, z - 1)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE, trimH, trimThick), trimMat);
+            b.position.set(posX, trimH / 2, posZ - CELL_SIZE / 2 - trimThick / 2);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
+          if (isWalkable(x - 1, z)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(trimThick, trimH, CELL_SIZE), trimMat);
+            b.position.set(posX - CELL_SIZE / 2 - trimThick / 2, trimH / 2, posZ);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
+          if (isWalkable(x + 1, z)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(trimThick, trimH, CELL_SIZE), trimMat);
+            b.position.set(posX + CELL_SIZE / 2 + trimThick / 2, trimH / 2, posZ);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
         } else if (grid[x][z] === 2) {
           // Irregular large columns matching the user picture
           const isWideX = (x + z) % 2 === 0;
@@ -1143,6 +1256,28 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           mazeGroup.add(mesh);
+
+          // Spawn baseboards on visible faces
+          if (isWalkable(x, z + 1)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(colW, trimH, trimThick), trimMat);
+            b.position.set(posX, trimH / 2, posZ + colD / 2 + trimThick / 2);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
+          if (isWalkable(x, z - 1)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(colW, trimH, trimThick), trimMat);
+            b.position.set(posX, trimH / 2, posZ - colD / 2 - trimThick / 2);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
+          if (isWalkable(x - 1, z)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(trimThick, trimH, colD), trimMat);
+            b.position.set(posX - colW / 2 - trimThick / 2, trimH / 2, posZ);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
+          if (isWalkable(x + 1, z)) {
+            const b = new THREE.Mesh(new THREE.BoxGeometry(trimThick, trimH, colD), trimMat);
+            b.position.set(posX + colW / 2 + trimThick / 2, trimH / 2, posZ);
+            b.castShadow = true; b.receiveShadow = true; mazeGroup.add(b);
+          }
         } else if (grid[x][z] === 3) {
           // Render a realistic vertical door centered in the cell!
           const doorGroup = new THREE.Group();
@@ -1705,7 +1840,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             lightMesh.position.set(posX, 3.48, posZ);
             scene.add(lightMesh);
 
-            const light = new THREE.PointLight(color, intensity, 10, 1.5);
+            const light = new THREE.PointLight(color, intensity * 2.2, 12, 2.0);
             light.position.set(posX, 3.2, posZ);
             light.castShadow = false; 
             scene.add(light);
@@ -1768,7 +1903,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     camera.add(hammer);
     hammerRef.current = hammer;
 
-    const flashlight = new THREE.SpotLight(0xffffff, 5.0, 24, Math.PI / 5, 0.5, 1.0);
+    const flashlight = new THREE.SpotLight(0xffffff, 12.0, 28, Math.PI / 5.2, 0.6, 2.0);
     flashlight.castShadow = true;
     flashlight.shadow.mapSize.width = 1024;
     flashlight.shadow.mapSize.height = 1024;

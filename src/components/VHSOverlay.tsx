@@ -41,7 +41,7 @@ export const VHSOverlay: React.FC<VHSOverlayProps> = ({ entityDistance }) => {
       <div className="absolute inset-0 bg-flicker pointer-events-none" />
 
       {/* Retro VHS Vitals HUD */}
-      <div className="absolute inset-0 font-mono text-[9px] md:text-[10px] text-white/60 p-4 flex flex-col justify-between h-full">
+      <div className="absolute inset-0 font-mono text-[9px] md:text-[10px] text-white/80 p-4 flex flex-col justify-between h-full vhs-text">
         {/* Top bar */}
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-1">

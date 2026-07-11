@@ -240,3 +240,12 @@ canvas {
     display: none !important;
   }
 }
+
+/* CRT Phosphor Glow / Chromatic RGB Split on HUD text */
+.vhs-text {
+  text-shadow: 
+    1.2px 0px 0.3px rgba(255,0,0,0.65), 
+    -1.2px 0px 0.3px rgba(0,0,255,0.65),
+    0px 0px 1px rgba(255,255,255,0.9) !important;
+  letter-spacing: 0.8px !important;
+}
