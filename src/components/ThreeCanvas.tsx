@@ -3022,6 +3022,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             setEntityDistance(999.0);
           }
         }
+      }
+
       // A. Update Hammer Swing Animation
       if (hammerRef.current) {
         const hammer = hammerRef.current;
