@@ -2052,7 +2052,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         return group;
       };
 
-      const createMannequinMesh = (color: THREE.ColorRepresentation) => {
+      const createMannequinMesh = (color: THREE.ColorRepresentation, hasLegs: boolean) => {
         const group = new THREE.Group();
         const mat = new THREE.MeshStandardMaterial({
           color: color,
@@ -2069,20 +2069,26 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         
         // Torso/Hip Stand pole
         const standMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.1 });
-        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8, 8), standMat);
-        pole.position.set(0, 0.4, 0);
+        const poleHeight = hasLegs ? 0.8 : 1.1; // longer pole if no legs
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, poleHeight, 8), standMat);
+        pole.position.set(0, poleHeight / 2, 0);
         group.add(pole);
 
-        // Legs
-        const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.7, 8), mat);
-        leftLeg.position.set(-0.07, 0.35, 0);
-        leftLeg.castShadow = true;
-        group.add(leftLeg);
-        
-        const rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.7, 8), mat);
-        rightLeg.position.set(0.07, 0.35, 0);
-        rightLeg.castShadow = true;
-        group.add(rightLeg);
+        let leftLeg = null;
+        let rightLeg = null;
+
+        if (hasLegs) {
+          // Legs
+          leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.7, 8), mat);
+          leftLeg.position.set(-0.07, 0.35, 0);
+          leftLeg.castShadow = true;
+          group.add(leftLeg);
+          
+          rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.7, 8), mat);
+          rightLeg.position.set(0.07, 0.35, 0);
+          rightLeg.castShadow = true;
+          group.add(rightLeg);
+        }
         
         // Hips / Torso body
         const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.6, 12), mat);
@@ -2118,6 +2124,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         head.scale.set(1.0, 1.15, 1.0);
         head.castShadow = true;
         group.add(head);
+
+        // Store pointers in userData for animation loops
+        group.userData = {
+          hasLegs,
+          leftLeg,
+          rightLeg,
+          leftArm,
+          rightArm,
+          isRunner: false,
+          isActive: false
+        };
         
         return group;
       };
@@ -2289,7 +2306,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const colorSeed = Math.abs(Math.sin(attemptSeed * 9.2)) % 1;
             const color = colorSeed < 0.7 ? 0xece6dc : colorSeed < 0.9 ? 0x1c1c1c : 0x8b5a2b;
             
-            const mannequin = createMannequinMesh(color);
+            const hasLegs = Math.abs(Math.sin(attemptSeed * 13.3)) % 1 < 0.6;
+            const isRunner = hasLegs && (Math.abs(Math.sin(attemptSeed * 22.1)) % 1 < 0.35);
+            
+            const mannequin = createMannequinMesh(color, hasLegs);
+            mannequin.userData.isRunner = isRunner;
             
             // Random offset within the cell boundaries to prevent wall clipping
             const offX = (Math.abs(Math.sin(attemptSeed * 11.3)) % 1 - 0.5) * 1.2;
@@ -3069,7 +3090,53 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // B. Update Debris Particles Physics
+      // B. Update Runner Mannequins AI
+      for (let b of breakablesRef.current) {
+        if (b.mesh.userData && b.mesh.userData.isRunner) {
+          const m = b.mesh;
+          const uData = m.userData;
+          const mPos = m.position;
+          const dist = camera.position.distanceTo(mPos);
+
+          if (!uData.isActive) {
+            // Wake up when player gets within 6.5 meters
+            if (dist < 6.5) {
+              uData.isActive = true;
+              Synthesizer.triggerEntityGlitch();
+            }
+          } else {
+            // Move toward player
+            const dir = new THREE.Vector3().copy(camera.position).sub(mPos);
+            dir.y = 0;
+            dir.normalize();
+
+            mPos.add(dir.multiplyScalar(2.2 * delta));
+            m.rotation.y = Math.atan2(dir.x, dir.z);
+
+            // Limb running animation
+            const runSpeed = 16;
+            const runAngle = 0.6;
+            if (uData.leftLeg && uData.rightLeg) {
+              uData.leftLeg.rotation.x = Math.sin(elapsedTime * runSpeed) * runAngle;
+              uData.rightLeg.rotation.x = -Math.sin(elapsedTime * runSpeed) * runAngle;
+            }
+            if (uData.leftArm && uData.rightArm) {
+              uData.leftArm.rotation.x = Math.cos(elapsedTime * runSpeed) * runAngle * 1.2;
+              uData.rightArm.rotation.x = -Math.cos(elapsedTime * runSpeed) * runAngle * 1.2;
+            }
+
+            // Touch player check: glitch jumpscare & auto-shatter
+            if (dist < 0.95) {
+              setEntityDistance(1.0);
+              setTimeout(() => setEntityDistance(999.0), 800);
+              smashObject(b);
+              break; // exit early to prevent collection mutation errors
+            }
+          }
+        }
+      }
+
+      // C. Update Debris Particles Physics
       const now = performance.now();
       const dt = Math.min(delta, 0.03); // clamp to prevent physics explosion
       const activeDebris = [];
