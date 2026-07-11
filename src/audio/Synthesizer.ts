@@ -546,6 +546,157 @@ class SoundSynthesizer {
   triggerEntityScreech() {
     // No-op (screeching sound removed at user request)
   }
+
+  // Helper to create a noise buffer for crash texture
+  private getNoiseBuffer(ctx: AudioContext): AudioBuffer {
+    const bufferSize = ctx.sampleRate * 1.5;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  // Synthesize a wood, metal, plastic, or soft thud destruction sound effect
+  triggerSmashSound(materialType: 'wood' | 'metal' | 'plastic' | 'soft') {
+    if (!this.audioCtx || !this.masterGain) return;
+    
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    
+    // 1. Base low-frequency thud impact component
+    const thudOsc = ctx.createOscillator();
+    const thudGain = ctx.createGain();
+    thudOsc.type = 'triangle';
+    thudOsc.frequency.setValueAtTime(140, now);
+    thudOsc.frequency.exponentialRampToValueAtTime(50, now + 0.15);
+    
+    thudGain.gain.setValueAtTime(0.65, now);
+    thudGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+    
+    thudOsc.connect(thudGain);
+    thudGain.connect(this.masterGain);
+    thudOsc.start(now);
+    thudOsc.stop(now + 0.25);
+    
+    // 2. Material-specific acoustics
+    if (materialType === 'wood') {
+      // Wood crackle crash noise
+      const noise = ctx.createBufferSource();
+      noise.buffer = this.getNoiseBuffer(ctx);
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(450, now);
+      filter.Q.setValueAtTime(1.5, now);
+      
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      
+      noise.start(now);
+      noise.stop(now + 0.5);
+      
+      // High-pitched wood snap splinter
+      const snap = ctx.createOscillator();
+      const snapGain = ctx.createGain();
+      snap.type = 'sawtooth';
+      snap.frequency.setValueAtTime(800, now);
+      snap.frequency.linearRampToValueAtTime(100, now + 0.08);
+      
+      snapGain.gain.setValueAtTime(0.3, now);
+      snapGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.09);
+      
+      snap.connect(snapGain);
+      snapGain.connect(this.masterGain);
+      snap.start(now);
+      snap.stop(now + 0.15);
+      
+    } else if (materialType === 'metal') {
+      // Metallic resonant ring (harmonic stack)
+      const frequencies = [880, 1200, 1760, 2400];
+      frequencies.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        
+        const decayTime = 0.75 / (idx * 0.5 + 1);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + decayTime);
+        
+        osc.connect(gain);
+        gain.connect(this.masterGain!);
+        
+        osc.start(now);
+        osc.stop(now + decayTime + 0.05);
+      });
+      
+      // Metal scrap noise
+      const noise = ctx.createBufferSource();
+      noise.buffer = this.getNoiseBuffer(ctx);
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(2000, now);
+      
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.20, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      
+      noise.start(now);
+      noise.stop(now + 0.35);
+      
+    } else if (materialType === 'plastic' || materialType === 'soft') {
+      // Dull plasticky thud or soft bag drop
+      const noise = ctx.createBufferSource();
+      noise.buffer = this.getNoiseBuffer(ctx);
+      
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(180, now);
+      
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(materialType === 'plastic' ? 0.4 : 0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+      
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+      
+      noise.start(now);
+      noise.stop(now + 0.25);
+    }
+  }
+  // Synthesize a quick whoosh sound for swinging the hammer
+  triggerSwingWhoosh() {
+    if (!this.audioCtx || !this.masterGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(30, now + 0.15);
+    
+    gain.gain.setValueAtTime(0.25, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+    
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.2);
+  }
 }
 
 export const Synthesizer = new SoundSynthesizer();

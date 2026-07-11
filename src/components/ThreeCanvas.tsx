@@ -68,10 +68,139 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const itemsMeshesRef = useRef<{ [key: string]: THREE.Group }>({});
   const entityMeshRef = useRef<THREE.Group | null>(null);
   
+  const hammerRef = useRef<THREE.Group | null>(null);
+  const isSwingingRef = useRef<boolean>(false);
+  const swingStartTimeRef = useRef<number>(0);
+  const hasHitThisSwingRef = useRef<boolean>(false);
+  const breakablesRef = useRef<{ mesh: THREE.Object3D; type: 'wood' | 'metal' | 'plastic' | 'soft' }[]>([]);
+  const debrisRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; spawnTime: number }[]>([]);
+
   // Map dimensions
   const MAP_SIZE = 14;
   const CELL_SIZE = 4;
   const mapGridRef = useRef<number[][]>([]);
+
+  // Trigger hammer swing animation and play whoosh audio sound
+  const triggerHammerSwing = () => {
+    if (isSwingingRef.current) return;
+    isSwingingRef.current = true;
+    hasHitThisSwingRef.current = false;
+    swingStartTimeRef.current = performance.now();
+    Synthesizer.triggerSwingWhoosh();
+  };
+
+  // Spawn visual debris particles flying outwards when a prop shatters
+  const spawnDebrisParticles = (mesh: THREE.Object3D) => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    const centerPos = new THREE.Vector3();
+    mesh.getWorldPosition(centerPos);
+
+    // Dynamic color extraction based on the target object's child materials
+    const colors: THREE.Color[] = [];
+    mesh.traverse(child => {
+      if ((child as any).isMesh && (child as any).material) {
+        const mat = (child as any).material;
+        if (mat.color) {
+          colors.push(mat.color.clone());
+        }
+      }
+    });
+    if (colors.length === 0) {
+      colors.push(new THREE.Color(0x8b5a2b)); // Default wooden fallback tone
+    }
+
+    // Spawn 8-12 physical debris particles
+    const count = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < count; i++) {
+      const size = 0.08 + Math.random() * 0.12;
+      const geo = new THREE.BoxGeometry(size, size, size);
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const mat = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.9,
+        metalness: 0.1
+      });
+      const particle = new THREE.Mesh(geo, mat);
+      particle.castShadow = true;
+      particle.receiveShadow = true;
+
+      // Start debris positions clustered near the prop's visual center
+      particle.position.copy(centerPos);
+      particle.position.x += (Math.random() - 0.5) * 0.4;
+      particle.position.y += Math.random() * 0.8; // Burst vertical spread
+      particle.position.z += (Math.random() - 0.5) * 0.4;
+
+      // Radial outward explosion vector physics
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 1.0 + Math.random() * 3.5;
+      const vx = Math.cos(angle) * speed;
+      const vy = 2.0 + Math.random() * 4.0; // Initial vertical upward force
+      const vz = Math.sin(angle) * speed;
+
+      scene.add(particle);
+
+      debrisRef.current.push({
+        mesh: particle,
+        vx,
+        vy,
+        vz,
+        spawnTime: performance.now()
+      });
+    }
+  };
+
+  // Perform object destruction and play corresponding sound effect
+  const smashObject = (breakable: { mesh: THREE.Object3D; type: 'wood' | 'metal' | 'plastic' | 'soft' }) => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+
+    // Trigger synthesis of material smash sound
+    Synthesizer.triggerSmashSound(breakable.type);
+
+    // Burst visual particles
+    spawnDebrisParticles(breakable.mesh);
+
+    // Clean up Three.js rendering scene child graph
+    scene.remove(breakable.mesh);
+
+    // Filter out destroyed entry from tracking references
+    breakablesRef.current = breakablesRef.current.filter(b => b !== breakable);
+  };
+
+  // Cast ray directly forward from the camera's screen center
+  const performHitDetection = () => {
+    const camera = cameraRef.current;
+    const scene = sceneRef.current;
+    if (!camera || !scene) return;
+
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+
+    const breakableObjects = breakablesRef.current.map(b => b.mesh);
+    const intersects = raycaster.intersectObjects(breakableObjects, true);
+
+    if (intersects.length > 0) {
+      const hit = intersects[0];
+      // Check if target falls within hammer swing length (2.2 meters)
+      if (hit.distance < 2.2) {
+        let hitObj: THREE.Object3D | null = hit.object;
+        let registeredBreakable = null;
+
+        // Traverse upwards to match raycast submesh with root registered breakable
+        while (hitObj) {
+          registeredBreakable = breakablesRef.current.find(b => b.mesh === hitObj);
+          if (registeredBreakable) break;
+          hitObj = hitObj.parent;
+        }
+
+        if (registeredBreakable) {
+          smashObject(registeredBreakable);
+        }
+      }
+    }
+  };
 
   // Procedural canvas textures
   const createProceduralTexture = (type: string, baseColor: string, isWall: boolean = false): THREE.Texture => {
@@ -565,10 +694,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const handleMouseDown = () => {
+    const handleMouseDown = (e: MouseEvent) => {
       isDraggingRef.current = true;
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
+      }
+      if (e.button === 0) { // Left click
+        triggerHammerSwing();
       }
     };
 
@@ -1584,7 +1716,49 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
 
 
-    // 6. Spawn Flashlight (Spotlight) attached to camera
+    // 6. Spawn Flashlight (Spotlight) attached to camera and 3D Hammer tool
+    scene.add(camera);
+
+    const create3DHammer = () => {
+      const hammerGroup = new THREE.Group();
+      const handleMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8, metalness: 0.1 });
+      const headMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.3, metalness: 0.8 });
+      const bandMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5, metalness: 0.7 });
+
+      // Handle shaft (Z-aligned)
+      const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.42, 8), handleMat);
+      handle.rotation.x = Math.PI / 2;
+      handle.position.set(0, 0, 0.12);
+      handle.castShadow = true;
+      hammerGroup.add(handle);
+
+      // Head
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.14), headMat);
+      head.position.set(0, 0, -0.09);
+      head.castShadow = true;
+      hammerGroup.add(head);
+
+      // Claw
+      const claw = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.04), headMat);
+      claw.position.set(0, 0.03, -0.09);
+      hammerGroup.add(claw);
+
+      // Band
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.03, 8), bandMat);
+      band.rotation.x = Math.PI / 2;
+      band.position.set(0, 0, -0.06);
+      hammerGroup.add(band);
+
+      return hammerGroup;
+    };
+
+    const hammer = create3DHammer();
+    // Rest position in bottom-right corner of player viewport
+    hammer.position.set(0.24, -0.26, -0.45);
+    hammer.rotation.set(-0.2, -Math.PI / 4, 0.1);
+    camera.add(hammer);
+    hammerRef.current = hammer;
+
     const flashlight = new THREE.SpotLight(0xffffff, 5.0, 24, Math.PI / 5, 0.5, 1.0);
     flashlight.castShadow = true;
     flashlight.shadow.mapSize.width = 1024;
@@ -1594,6 +1768,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     // 7. Spawn Theme Specific Props (Pipes, Cabinets, Lockers, Water puddles)
     const spawnProps = () => {
+      breakablesRef.current = [];
       const metalMaterial = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.8, roughness: 0.3 });
       
       if (theme.props.includes('pipe')) {
@@ -1618,6 +1793,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const locker = new THREE.Mesh(lockerGeo, lockerMat);
               locker.position.set(x * CELL_SIZE + 1.6, 1.1, z * CELL_SIZE);
               scene.add(locker);
+              breakablesRef.current.push({ mesh: locker, type: 'metal' });
             }
           }
         }
@@ -1650,6 +1826,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
               group.position.set(x * CELL_SIZE, 0, z * CELL_SIZE + 1.6);
               scene.add(group);
+              breakablesRef.current.push({ mesh: group, type: 'metal' });
             }
           }
         }
@@ -1983,6 +2160,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
 
         scene.add(objectMesh);
+        const propType = (creatorIndex === 0 || creatorIndex === 1) ? 'wood' 
+                       : (creatorIndex === 4 || creatorIndex === 5) ? 'metal' 
+                       : creatorIndex === 3 ? 'plastic' : 'soft';
+        breakablesRef.current.push({ mesh: objectMesh, type: propType });
       }
 
       // Wall-to-floor pipe systems
@@ -2046,6 +2227,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           fuseBoxGroup.add(ledLight);
 
           scene.add(fuseBoxGroup);
+          breakablesRef.current.push({ mesh: fuseBoxGroup, type: 'metal' });
         }
       }
 
@@ -2074,6 +2256,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                 const pile = createLaundryPileMesh();
                 pile.position.set(x * CELL_SIZE + corner.dx, 0, z * CELL_SIZE + corner.dz);
                 scene.add(pile);
+                breakablesRef.current.push({ mesh: pile, type: 'soft' });
               }
             }
           }
@@ -2108,6 +2291,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             mannequin.rotation.y = (Math.abs(Math.sin(attemptSeed * 25.1)) % 1) * Math.PI * 2;
             
             scene.add(mannequin);
+            breakablesRef.current.push({ mesh: mannequin, type: 'plastic' });
             spawned++;
           }
         }
@@ -2838,7 +3022,91 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             setEntityDistance(999.0);
           }
         }
+      // A. Update Hammer Swing Animation
+      if (hammerRef.current) {
+        const hammer = hammerRef.current;
+        if (isSwingingRef.current) {
+          const swingTime = currentTime - swingStartTimeRef.current;
+          if (swingTime < 300) {
+            const t = swingTime / 300;
+            const angleScale = Math.sin(t * Math.PI); // Smooth curve peaking at t = 0.5 (150ms)
+            
+            // Swing forward thrust and tilt rotation
+            hammer.rotation.x = -0.2 - angleScale * 1.2;
+            hammer.rotation.y = -Math.PI / 4 + angleScale * 0.4;
+            hammer.rotation.z = 0.1 - angleScale * 0.5;
+            
+            // Lunge forward slightly
+            hammer.position.x = 0.24 - angleScale * 0.1;
+            hammer.position.y = -0.26 - angleScale * 0.08;
+            hammer.position.z = -0.45 - angleScale * 0.12;
+            
+            // Raycast hit detection at the peak stroke of the swing
+            if (swingTime >= 135 && !hasHitThisSwingRef.current) {
+              hasHitThisSwingRef.current = true;
+              performHitDetection();
+            }
+          } else {
+            isSwingingRef.current = false;
+            // Reset to rest position
+            hammer.position.set(0.24, -0.26, -0.45);
+            hammer.rotation.set(-0.2, -Math.PI / 4, 0.1);
+          }
+        } else {
+          // Subtle idle breathing motion
+          const breathe = Math.sin(elapsedTime * 1.5) * 0.005;
+          hammer.position.y = -0.26 + breathe;
+        }
       }
+
+      // B. Update Debris Particles Physics
+      const now = performance.now();
+      const dt = Math.min(delta, 0.03); // clamp to prevent physics explosion
+      const activeDebris = [];
+      
+      for (let d of debrisRef.current) {
+        const age = now - d.spawnTime;
+        if (age > 3000) {
+          scene.remove(d.mesh);
+          d.mesh.geometry.dispose();
+          if (Array.isArray(d.mesh.material)) {
+            d.mesh.material.forEach(m => m.dispose());
+          } else {
+            d.mesh.material.dispose();
+          }
+          continue;
+        }
+        
+        // Apply gravity and velocity vector changes
+        d.vy -= 9.8 * dt;
+        d.mesh.position.x += d.vx * dt;
+        d.mesh.position.y += d.vy * dt;
+        d.mesh.position.z += d.vz * dt;
+        
+        // Floor collision bounce
+        if (d.mesh.position.y < 0.05) {
+          d.mesh.position.y = 0.05;
+          d.vy = -d.vy * 0.35; // Bouncing dampening coefficient
+          d.vx *= 0.7; // Floor sliding friction coefficient
+          d.vz *= 0.7;
+        }
+        
+        // Fade out materials gradually in the final second before deletion
+        if (age > 2000) {
+          const progress = (age - 2000) / 1000;
+          d.mesh.traverse(child => {
+            if ((child as any).material) {
+              const mat = (child as any).material;
+              mat.transparent = true;
+              mat.opacity = 1.0 - progress;
+            }
+          });
+        }
+        
+        activeDebris.push(d);
+      }
+      debrisRef.current = activeDebris;
+
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);
     };
@@ -2989,6 +3257,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       >
         <div ref={leftKnobRef} className="touch-joystick-knob" />
       </div>
+
+      {/* Swing Hammer Button (Mobile touch target, hidden on desktop via CSS) */}
+      <button
+        className="touch-hammer-btn"
+        onClick={() => triggerHammerSwing()}
+      >
+        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m15 12-8.373 8.373a1 1 0 1 1-1.414-1.414L13.586 10.586A2 2 0 0 1 15 12Z"/>
+          <path d="m18 9 3-3-3-3-3 3 3 3Z"/>
+          <path d="m14 5 5 5"/>
+        </svg>
+      </button>
     </div>
   );
 };

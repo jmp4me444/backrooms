@@ -206,3 +206,37 @@ canvas {
 .w-full { width: 100% !important; }
 .h-full { height: 100% !important; }
 .flex-1 { flex: 1 1 0% !important; }
+
+/* Touch screen hammer button styling (Right side) */
+.touch-hammer-btn {
+  position: absolute !important;
+  bottom: 220px !important;
+  right: 24px !important;
+  z-index: 40 !important;
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 9999px !important;
+  border: 1px solid rgba(16, 185, 129, 0.4) !important;
+  background-color: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #10b981 !important;
+  user-select: none !important;
+  touch-action: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2) !important;
+  transition: transform 0.1s ease !important;
+}
+
+.touch-hammer-btn:active {
+  transform: scale(0.9) !important;
+  background-color: rgba(16, 185, 129, 0.15) !important;
+}
+
+@media (min-width: 1024px) {
+  .touch-hammer-btn {
+    display: none !important;
+  }
+}
