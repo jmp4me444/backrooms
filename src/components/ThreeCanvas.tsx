@@ -1997,8 +1997,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             if (corners.length > 0) {
               const seedVal = seedNum + x * 12.3 + z * 45.7;
               const randVal = Math.abs(Math.sin(seedVal)) % 1;
-              // 15% chance to spawn a laundry pile in a corner of this cell
-              if (randVal < 0.15) {
+              // 50% chance to spawn a laundry pile in a corner of this cell
+              if (randVal < 0.50) {
                 const cornerIndex = Math.floor(randVal * 100) % corners.length;
                 const corner = corners[cornerIndex];
                 const pile = createLaundryPileMesh();
