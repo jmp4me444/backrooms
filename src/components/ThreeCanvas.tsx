@@ -1774,39 +1774,94 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         return group;
       };
 
+      const createProceduralShirt = (color: THREE.ColorRepresentation) => {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0.0 });
+        
+        // Torso body
+        const torso = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.04, 0.38), mat);
+        torso.castShadow = true;
+        torso.receiveShadow = true;
+        group.add(torso);
+        
+        // Left Sleeve (angled slightly outward)
+        const leftSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.035, 0.16), mat);
+        leftSleeve.position.set(-0.20, 0, 0.06);
+        leftSleeve.rotation.y = Math.PI / 6;
+        leftSleeve.castShadow = true;
+        leftSleeve.receiveShadow = true;
+        group.add(leftSleeve);
+        
+        // Right Sleeve (angled slightly outward)
+        const rightSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.035, 0.16), mat);
+        rightSleeve.position.set(0.20, 0, 0.06);
+        rightSleeve.rotation.y = -Math.PI / 6;
+        rightSleeve.castShadow = true;
+        rightSleeve.receiveShadow = true;
+        group.add(rightSleeve);
+        
+        // Darker inner neck trim/collar opening
+        const collarMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.99 });
+        const collar = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.042, 0.06), collarMat);
+        collar.position.set(0, 0, 0.17);
+        group.add(collar);
+        
+        return group;
+      };
+
+      const createProceduralPants = (color: THREE.ColorRepresentation) => {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.95, metalness: 0.0 });
+        
+        // Waistband section
+        const waist = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.045, 0.14), mat);
+        waist.castShadow = true;
+        waist.receiveShadow = true;
+        group.add(waist);
+        
+        // Left Leg (folded slightly outward)
+        const leftLeg = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.038, 0.42), mat);
+        leftLeg.position.set(-0.07, 0, -0.22);
+        leftLeg.rotation.y = 0.08;
+        leftLeg.castShadow = true;
+        leftLeg.receiveShadow = true;
+        group.add(leftLeg);
+        
+        // Right Leg (crossed slightly over)
+        const rightLeg = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.038, 0.42), mat);
+        rightLeg.position.set(0.07, 0, -0.22);
+        rightLeg.rotation.y = -0.15;
+        rightLeg.castShadow = true;
+        rightLeg.receiveShadow = true;
+        group.add(rightLeg);
+        
+        return group;
+      };
+
       const createLaundryPileMesh = () => {
         const group = new THREE.Group();
         const colors = [0xd2b48c, 0xf5f5dc, 0x708090, 0x4682b4, 0x8b0000, 0xeeeeee];
-        const numPieces = 5 + Math.floor(Math.random() * 3);
+        const numItems = 4 + Math.floor(Math.random() * 3); // 4 to 6 garments
         
-        for (let i = 0; i < numPieces; i++) {
+        for (let i = 0; i < numItems; i++) {
           const color = colors[Math.floor(Math.random() * colors.length)];
-          const mat = new THREE.MeshStandardMaterial({
-            color: color,
-            roughness: 0.95,
-            metalness: 0.0
-          });
+          const garment = i % 2 === 0 ? createProceduralShirt(color) : createProceduralPants(color);
           
-          let mesh;
-          if (i % 2 === 0) {
-            mesh = new THREE.Mesh(new THREE.BoxGeometry(0.35 + Math.random() * 0.25, 0.08 + Math.random() * 0.08, 0.35 + Math.random() * 0.25), mat);
-          } else {
-            mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.2 + Math.random() * 0.15, 0.22 + Math.random() * 0.15, 0.06 + Math.random() * 0.06, 8), mat);
-          }
+          const offsetX = (Math.random() - 0.5) * 0.3;
+          const offsetZ = (Math.random() - 0.5) * 0.3;
+          const offsetY = 0.02 + i * 0.045; // layer them up
           
-          const offsetX = (Math.random() - 0.5) * 0.25;
-          const offsetZ = (Math.random() - 0.5) * 0.25;
-          const offsetY = 0.02 + i * 0.05;
-          
-          mesh.position.set(offsetX, offsetY, offsetZ);
-          mesh.rotation.set(
-            (Math.random() - 0.5) * 0.4,
+          garment.position.set(offsetX, offsetY, offsetZ);
+          garment.rotation.set(
+            (Math.random() - 0.5) * 0.3,
             Math.random() * Math.PI,
-            (Math.random() - 0.5) * 0.4
+            (Math.random() - 0.5) * 0.3
           );
-          mesh.castShadow = true;
-          mesh.receiveShadow = true;
-          group.add(mesh);
+          
+          const scale = 0.85 + Math.random() * 0.3;
+          garment.scale.set(scale, scale, scale);
+          
+          group.add(garment);
         }
         return group;
       };
