@@ -2282,8 +2282,33 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (t > 0.85) {
             onLevelTransition(Math.floor(Math.random() * 1000000));
           }
-        } else if (grid[px][pz] === 5 || grid[px][pz] === 6) {
-          onLevelTransition(Math.floor(Math.random() * 1000000));
+        } else if (grid[px][pz] === 5) {
+          // Wall Window: compute exact offset placement coordinates of the frame to check distance
+          let offX = 0;
+          let offZ = 0;
+          if (px < MAP_SIZE - 1 && (grid[px+1][pz] === 0 || grid[px+1][pz] === 3 || grid[px+1][pz] === 4)) {
+            offX = CELL_SIZE / 2 - 0.15;
+          } else if (px > 0 && (grid[px-1][pz] === 0 || grid[px-1][pz] === 3 || grid[px-1][pz] === 4)) {
+            offX = -CELL_SIZE / 2 + 0.15;
+          } else if (pz < MAP_SIZE - 1 && (grid[px][pz+1] === 0 || grid[px][pz+1] === 3 || grid[px][pz+1] === 4)) {
+            offZ = CELL_SIZE / 2 - 0.15;
+          } else if (pz > 0 && (grid[px][pz-1] === 0 || grid[px][pz-1] === 3 || grid[px][pz-1] === 4)) {
+            offZ = -CELL_SIZE / 2 + 0.15;
+          }
+          const winX = px * CELL_SIZE + offX;
+          const winZ = pz * CELL_SIZE + offZ;
+          const dist = Math.sqrt(Math.pow(camera.position.x - winX, 2) + Math.pow(camera.position.z - winZ, 2));
+          if (dist < 0.8) {
+            onLevelTransition(Math.floor(Math.random() * 1000000));
+          }
+        } else if (grid[px][pz] === 6) {
+          // Floor Window: check distance to cell center
+          const winX = px * CELL_SIZE;
+          const winZ = pz * CELL_SIZE;
+          const dist = Math.sqrt(Math.pow(camera.position.x - winX, 2) + Math.pow(camera.position.z - winZ, 2));
+          if (dist < 0.8) {
+            onLevelTransition(Math.floor(Math.random() * 1000000));
+          }
         }
       }
 
