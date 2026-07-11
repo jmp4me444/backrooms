@@ -169,36 +169,39 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     breakablesRef.current = breakablesRef.current.filter(b => b !== breakable);
   };
 
-  // Cast ray directly forward from the camera's screen center
+  // Detect hits on breakable objects within range (2.6m) and in front of the player (63 degree cone)
   const performHitDetection = () => {
     const camera = cameraRef.current;
     const scene = sceneRef.current;
     if (!camera || !scene) return;
 
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const playerPos = camera.position;
+    // Get normalized camera forward gaze direction
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion).normalize();
 
-    const breakableObjects = breakablesRef.current.map(b => b.mesh);
-    const intersects = raycaster.intersectObjects(breakableObjects, true);
+    let closestBreakable = null;
+    let closestDist = 2.6; // Forgiving melee range
 
-    if (intersects.length > 0) {
-      const hit = intersects[0];
-      // Check if target falls within hammer swing length (2.2 meters)
-      if (hit.distance < 2.2) {
-        let hitObj: THREE.Object3D | null = hit.object;
-        let registeredBreakable = null;
+    for (let breakable of breakablesRef.current) {
+      const objPos = new THREE.Vector3();
+      breakable.mesh.getWorldPosition(objPos);
 
-        // Traverse upwards to match raycast submesh with root registered breakable
-        while (hitObj) {
-          registeredBreakable = breakablesRef.current.find(b => b.mesh === hitObj);
-          if (registeredBreakable) break;
-          hitObj = hitObj.parent;
-        }
+      const dist = playerPos.distanceTo(objPos);
+      if (dist < closestDist) {
+        // Calculate angle direction to the prop
+        const dirToObj = objPos.clone().sub(playerPos).normalize();
+        const dot = forward.dot(dirToObj);
 
-        if (registeredBreakable) {
-          smashObject(registeredBreakable);
+        // dot > 0.45 corresponds to approx a 63-degree view cone in front of the camera
+        if (dot > 0.45) {
+          closestBreakable = breakable;
+          closestDist = dist;
         }
       }
+    }
+
+    if (closestBreakable) {
+      smashObject(closestBreakable);
     }
   };
 
@@ -1725,37 +1728,37 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const headMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.3, metalness: 0.8 });
       const bandMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.5, metalness: 0.7 });
 
-      // Handle shaft (Z-aligned)
+      // Handle shaft (Z-aligned, running from Z=0 to Z=-0.42)
       const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.42, 8), handleMat);
       handle.rotation.x = Math.PI / 2;
-      handle.position.set(0, 0, 0.12);
+      handle.position.set(0, 0, -0.21);
       handle.castShadow = true;
       hammerGroup.add(handle);
 
-      // Head
+      // Head (placed near the far end of the shaft)
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.14), headMat);
-      head.position.set(0, 0, -0.09);
+      head.position.set(0, 0, -0.38);
       head.castShadow = true;
       hammerGroup.add(head);
 
       // Claw
       const claw = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.03, 0.04), headMat);
-      claw.position.set(0, 0.03, -0.09);
+      claw.position.set(0, 0.03, -0.38);
       hammerGroup.add(claw);
 
       // Band
       const band = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.03, 8), bandMat);
       band.rotation.x = Math.PI / 2;
-      band.position.set(0, 0, -0.06);
+      band.position.set(0, 0, -0.31);
       hammerGroup.add(band);
 
       return hammerGroup;
     };
 
     const hammer = create3DHammer();
-    // Rest position in bottom-right corner of player viewport
-    hammer.position.set(0.24, -0.26, -0.45);
-    hammer.rotation.set(-0.2, -Math.PI / 4, 0.1);
+    // Rest position closer and slightly tilted in viewport
+    hammer.position.set(0.18, -0.18, -0.35);
+    hammer.rotation.set(-0.5, -Math.PI / 3, 0.2);
     camera.add(hammer);
     hammerRef.current = hammer;
 
@@ -3034,14 +3037,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const angleScale = Math.sin(t * Math.PI); // Smooth curve peaking at t = 0.5 (150ms)
             
             // Swing forward thrust and tilt rotation
-            hammer.rotation.x = -0.2 - angleScale * 1.2;
-            hammer.rotation.y = -Math.PI / 4 + angleScale * 0.4;
-            hammer.rotation.z = 0.1 - angleScale * 0.5;
+            hammer.rotation.x = -0.5 - angleScale * 1.5;
+            hammer.rotation.y = -Math.PI / 3 + angleScale * 0.8;
+            hammer.rotation.z = 0.2 - angleScale * 0.4;
             
             // Lunge forward slightly
-            hammer.position.x = 0.24 - angleScale * 0.1;
-            hammer.position.y = -0.26 - angleScale * 0.08;
-            hammer.position.z = -0.45 - angleScale * 0.12;
+            hammer.position.x = 0.18 - angleScale * 0.08;
+            hammer.position.y = -0.18 - angleScale * 0.05;
+            hammer.position.z = -0.35 - angleScale * 0.15;
             
             // Raycast hit detection at the peak stroke of the swing
             if (swingTime >= 135 && !hasHitThisSwingRef.current) {
@@ -3051,13 +3054,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           } else {
             isSwingingRef.current = false;
             // Reset to rest position
-            hammer.position.set(0.24, -0.26, -0.45);
-            hammer.rotation.set(-0.2, -Math.PI / 4, 0.1);
+            hammer.position.set(0.18, -0.18, -0.35);
+            hammer.rotation.set(-0.5, -Math.PI / 3, 0.2);
           }
         } else {
           // Subtle idle breathing motion
           const breathe = Math.sin(elapsedTime * 1.5) * 0.005;
-          hammer.position.y = -0.26 + breathe;
+          hammer.position.y = -0.18 + breathe;
         }
       }
 
