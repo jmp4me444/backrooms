@@ -2307,7 +2307,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const color = colorSeed < 0.7 ? 0xece6dc : colorSeed < 0.9 ? 0x1c1c1c : 0x8b5a2b;
             
             const hasLegs = Math.abs(Math.sin(attemptSeed * 13.3)) % 1 < 0.6;
-            const isRunner = hasLegs && (Math.abs(Math.sin(attemptSeed * 22.1)) % 1 < 0.35);
+            const isRunner = hasLegs; // Every mannequin with legs will run after you!
             
             const mannequin = createMannequinMesh(color, hasLegs);
             mannequin.userData.isRunner = isRunner;
