@@ -1866,6 +1866,76 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         return group;
       };
 
+      const createMannequinMesh = (color: THREE.ColorRepresentation) => {
+        const group = new THREE.Group();
+        const mat = new THREE.MeshStandardMaterial({
+          color: color,
+          roughness: 0.15, // glossy mannequin plastic
+          metalness: 0.1
+        });
+        
+        // Base plate stand
+        const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.02, 12), mat);
+        base.position.y = 0.01;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+        
+        // Torso/Hip Stand pole
+        const standMat = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.9, roughness: 0.1 });
+        const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.8, 8), standMat);
+        pole.position.set(0, 0.4, 0);
+        group.add(pole);
+
+        // Legs
+        const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.7, 8), mat);
+        leftLeg.position.set(-0.07, 0.35, 0);
+        leftLeg.castShadow = true;
+        group.add(leftLeg);
+        
+        const rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.04, 0.7, 8), mat);
+        rightLeg.position.set(0.07, 0.35, 0);
+        rightLeg.castShadow = true;
+        group.add(rightLeg);
+        
+        // Hips / Torso body
+        const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.09, 0.6, 12), mat);
+        torso.position.set(0, 1.0, 0);
+        torso.scale.set(1.2, 1.0, 0.75); // flatten chest Z-wise
+        torso.castShadow = true;
+        group.add(torso);
+        
+        // Arms
+        const leftArm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.55, 8), mat);
+        leftArm.position.set(-0.16, 0.95, 0);
+        leftArm.rotation.z = 0.08;
+        leftArm.rotation.x = 0.1;
+        leftArm.castShadow = true;
+        group.add(leftArm);
+        
+        const rightArm = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 0.55, 8), mat);
+        rightArm.position.set(0.16, 0.95, 0);
+        rightArm.rotation.z = -0.08;
+        rightArm.rotation.x = -0.15;
+        rightArm.castShadow = true;
+        group.add(rightArm);
+        
+        // Neck
+        const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.12, 8), mat);
+        neck.position.set(0, 1.34, 0);
+        neck.castShadow = true;
+        group.add(neck);
+        
+        // Head (oval face sphere)
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.095, 16, 16), mat);
+        head.position.set(0, 1.45, 0);
+        head.scale.set(1.0, 1.15, 1.0);
+        head.castShadow = true;
+        group.add(head);
+        
+        return group;
+      };
+
       const creators = [
         createChairMesh,
         createTableMesh,
@@ -2006,6 +2076,39 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                 scene.add(pile);
               }
             }
+          }
+        }
+      }
+
+      // Spawn random standing mannequins on some levels (40% level chance)
+      const levelSeed = seedNum;
+      const hasMannequins = (Math.abs(Math.sin(levelSeed * 14.85)) % 1) < 0.4;
+      if (hasMannequins) {
+        const mannequinCount = 2 + Math.floor((Math.abs(Math.sin(levelSeed * 3.25)) % 1) * 4); // 2 to 5 mannequins
+        let spawned = 0;
+        
+        for (let attempt = 0; attempt < 40 && spawned < mannequinCount; attempt++) {
+          const attemptSeed = levelSeed + attempt * 71.3;
+          const x = Math.floor((Math.abs(Math.sin(attemptSeed * 1.8)) % 1) * (MAP_SIZE - 2)) + 1;
+          const z = Math.floor((Math.abs(Math.sin(attemptSeed * 4.9)) % 1) * (MAP_SIZE - 2)) + 1;
+          
+          // Must be walkable, away from spawn, and not stairs/door
+          if (grid[x]?.[z] === 0 && (x > 2 || z > 2)) {
+            const colorSeed = Math.abs(Math.sin(attemptSeed * 9.2)) % 1;
+            const color = colorSeed < 0.7 ? 0xece6dc : colorSeed < 0.9 ? 0x1c1c1c : 0x8b5a2b;
+            
+            const mannequin = createMannequinMesh(color);
+            
+            // Random offset within the cell boundaries to prevent wall clipping
+            const offX = (Math.abs(Math.sin(attemptSeed * 11.3)) % 1 - 0.5) * 1.2;
+            const offZ = (Math.abs(Math.sin(attemptSeed * 17.7)) % 1 - 0.5) * 1.2;
+            mannequin.position.set(x * CELL_SIZE + offX, 0, z * CELL_SIZE + offZ);
+            
+            // Random standing spin rotation
+            mannequin.rotation.y = (Math.abs(Math.sin(attemptSeed * 25.1)) % 1) * Math.PI * 2;
+            
+            scene.add(mannequin);
+            spawned++;
           }
         }
       }
