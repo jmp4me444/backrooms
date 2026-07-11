@@ -270,7 +270,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const ctx = canvas.getContext('2d')!;
 
     if (type === 'tiles' || type === 'hospital') {
-      // Tiles are glossy (roughness 0.15 = value 38), grout is rough (roughness 0.9 = value 230)
+      // Tiles are glossy (roughness 0.15), grout is rough (roughness 0.9)
       ctx.fillStyle = 'rgba(230, 230, 230, 1)';
       ctx.fillRect(0, 0, size, size);
       ctx.fillStyle = 'rgba(38, 38, 38, 1)';
@@ -280,25 +280,82 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
     } else if (type === 'concrete') {
-      // Concrete is mostly rough (roughness 0.85 = value 216) with some glossy patches (value 50)
+      // Concrete is mostly rough (0.85) with some glossy damp patches
       ctx.fillStyle = 'rgba(216, 216, 216, 1)';
       ctx.fillRect(0, 0, size, size);
-      // Puddles/dark spots
       ctx.fillStyle = 'rgba(50, 50, 50, 0.4)';
       for (let i = 0; i < 5; i++) {
         ctx.beginPath();
         ctx.arc(Math.random() * size, Math.random() * size, 15 + Math.random() * 30, 0, Math.PI * 2);
         ctx.fill();
       }
+    } else if (type === 'water') {
+      // Small pool floor tiles: tiles are very glossy (0.08 = value 20), grout is rough (0.85 = value 216)
+      ctx.fillStyle = 'rgba(216, 216, 216, 1)';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = 'rgba(20, 20, 20, 1)';
+      for (let i = 0; i < size; i += 32) {
+        for (let j = 0; j < size; j += 32) {
+          ctx.fillRect(i + 1.5, j + 1.5, 29, 29);
+        }
+      }
     } else if (type === 'metal') {
-      // Metal sheets: specular (roughness 0.35 = value 90)
       ctx.fillStyle = 'rgba(90, 90, 90, 1)';
       ctx.fillRect(0, 0, size, size);
-      ctx.fillStyle = 'rgba(200, 200, 200, 0.3)'; // rougher rust/grime spots
+      ctx.fillStyle = 'rgba(200, 200, 200, 0.3)'; // rust/grime spots
       for (let i = 0; i < 12; i++) {
         ctx.beginPath();
         ctx.arc(Math.random() * size, Math.random() * size, 10 + Math.random() * 20, 0, Math.PI * 2);
         ctx.fill();
+      }
+    } else if (type === 'linoleum') {
+      // Polished office/hospital linoleum: highly glossy (roughness 0.20 = value 51)
+      ctx.fillStyle = 'rgba(51, 51, 51, 1)';
+      ctx.fillRect(0, 0, size, size);
+      // Subtle scuffs
+      ctx.fillStyle = 'rgba(180, 180, 180, 0.08)';
+      for (let i = 0; i < 15; i++) {
+        ctx.fillRect(Math.random() * size, Math.random() * size, 8, 1);
+      }
+    } else if (type === 'carpet') {
+      // Carpet: highly absorbing, rough (roughness 0.95 = value 242)
+      ctx.fillStyle = 'rgba(242, 242, 242, 1)';
+      ctx.fillRect(0, 0, size, size);
+    } else if (type === 'wood') {
+      // Wood boards: semi-gloss boards (roughness 0.45 = value 115)
+      ctx.fillStyle = 'rgba(115, 115, 115, 1)';
+      ctx.fillRect(0, 0, size, size);
+      // Rough gaps and grain
+      ctx.fillStyle = 'rgba(220, 220, 220, 1)';
+      for (let y = 0; y < size; y += 64) {
+        ctx.fillRect(0, y, size, 2);
+      }
+    } else if (type === 'checkerboard') {
+      // Checkerboard tiles: semi-gloss (roughness 0.3 = value 76)
+      ctx.fillStyle = 'rgba(76, 76, 76, 1)';
+      ctx.fillRect(0, 0, size, size);
+      // Grout lines
+      ctx.fillStyle = 'rgba(200, 200, 200, 1)';
+      for (let i = 0; i <= size; i += 64) {
+        ctx.fillRect(i - 1, 0, 2, size);
+        ctx.fillRect(0, i - 1, size, 2);
+      }
+    } else if (type === 'cyber') {
+      // Glossy cyber floor: (roughness 0.25 = value 64)
+      ctx.fillStyle = 'rgba(64, 64, 64, 1)';
+      ctx.fillRect(0, 0, size, size);
+    } else if (type === 'brick') {
+      // Bricks: rough texture (roughness 0.75 = value 190), joints are rougher (roughness 0.92 = value 235)
+      ctx.fillStyle = 'rgba(235, 235, 235, 1)';
+      ctx.fillRect(0, 0, size, size);
+      ctx.fillStyle = 'rgba(190, 190, 190, 1)';
+      const brickH = 32;
+      const brickW = 64;
+      for (let y = 0; y < size; y += brickH) {
+        const offset = (y / brickH) % 2 === 0 ? 0 : brickW / 2;
+        for (let x = offset; x < size + brickW; x += brickW) {
+          ctx.fillRect((x % size) + 1.5, y + 1.5, brickW - 3, brickH - 3);
+        }
       }
     } else {
       // Default wallpaper or other textures: general matte finish (roughness 0.8 = value 204)
@@ -548,6 +605,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           ctx.lineTo(cx, cy);
         }
         ctx.stroke();
+      }
+    } else if (type === 'water') {
+      // Clean square tiles for pool bottoms (32x32px tiles with soft blue/white grout)
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+      ctx.lineWidth = 1.5;
+      for (let i = 0; i <= size; i += 32) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, size); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(size, i); ctx.stroke();
       }
     } else if (type === 'tiles' || type === 'hospital') {
       const isCeilingBeige = baseColor === '#ccbe9f' || baseColor === '#d6cbac';
