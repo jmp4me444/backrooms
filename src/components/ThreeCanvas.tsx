@@ -796,27 +796,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
     } else if (type === 'sand') {
-      // Grainy beach sand: tan gold-cream base with tiny high-frequency grain dots
-      ctx.fillStyle = '#dfcca4';
+      // Grainy beach sand matching baseColor
+      ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, size, size);
 
-      // Fine sand grains
+      // Fine sand grains with neutral overlay tints
       for (let k = 0; k < 1800; k++) {
         const sx = Math.random() * size;
         const sy = Math.random() * size;
         const colorSeed = Math.random();
-        ctx.fillStyle = colorSeed < 0.5 ? 'rgba(243, 228, 196, 0.6)' : 'rgba(187, 163, 119, 0.45)';
+        ctx.fillStyle = colorSeed < 0.5 ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)';
         ctx.fillRect(sx, sy, 1.5, 1.5);
       }
     } else if (type === 'thatch') {
-      // Woven thatch/straw panels
-      ctx.fillStyle = '#bf9e75';
+      // Woven thatch matching baseColor
+      ctx.fillStyle = baseColor;
       ctx.fillRect(0, 0, size, size);
 
-      // Draw overlapping diagonal straw lines
+      // Draw overlapping diagonal straw lines with neutral overlay tints
       ctx.lineWidth = 2.0;
       for (let k = 0; k < 120; k++) {
-        ctx.strokeStyle = Math.random() < 0.5 ? '#8d6e45' : '#e0c090';
+        ctx.strokeStyle = Math.random() < 0.5 ? 'rgba(0, 0, 0, 0.15)' : 'rgba(255, 255, 255, 0.12)';
         ctx.beginPath();
         const startX = Math.random() * (size + 30) - 15;
         const startY = Math.random() * (size + 30) - 15;
