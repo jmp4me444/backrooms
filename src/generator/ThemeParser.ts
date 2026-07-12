@@ -169,8 +169,8 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
   } else if (hasTropical) {
     theme.name = 'Level T: The Tropical Oasis';
     theme.wallColor = '#a3c293'; // bamboo green
-    theme.floorColor = '#dfcca4'; // beach sand tan
-    theme.ceilingColor = '#bf9e75'; // thatch roof brown
+    theme.floorColor = '#a3c293'; // matches wall color
+    theme.ceilingColor = '#a3c293'; // matches wall color
     theme.wallTexture = 'bamboo';
     theme.floorTexture = 'sand';
     theme.ceilingTexture = 'thatch';

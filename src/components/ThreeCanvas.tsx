@@ -1792,7 +1792,64 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             propGroup.position.set(posX, 0, posZ);
             const itemIndex = (x + z) % 3;
 
-            if (isTropicalTheme || isNatureTheme) {
+            if (isTropicalTheme) {
+              if (itemIndex === 0) {
+                // Pile of Sand
+                const sandMat = new THREE.MeshStandardMaterial({ 
+                  color: theme.floorColor,
+                  roughness: 0.95 
+                });
+                const moundGeo = new THREE.ConeGeometry(0.65, 0.35, 8);
+                const mound = new THREE.Mesh(moundGeo, sandMat);
+                mound.position.y = 0.175;
+                propGroup.add(mound);
+                
+                const subMound = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.2, 8), sandMat);
+                subMound.position.set(0.35, 0.1, -0.2);
+                propGroup.add(subMound);
+              } else if (itemIndex === 1) {
+                // Coconut Drink
+                const shellGeo = new THREE.SphereGeometry(0.24, 10, 10);
+                const shellMat = new THREE.MeshStandardMaterial({ color: '#5c4033', roughness: 0.85 }); // brown
+                const shell = new THREE.Mesh(shellGeo, shellMat);
+                shell.position.y = 0.24;
+                propGroup.add(shell);
+
+                const rimGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.02, 10);
+                const rimMat = new THREE.MeshStandardMaterial({ color: '#f5f5f5', roughness: 0.2 }); // white
+                const rim = new THREE.Mesh(rimGeo, rimMat);
+                rim.position.y = 0.45;
+                propGroup.add(rim);
+
+                const strawGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.35, 4);
+                const strawMat = new THREE.MeshBasicMaterial({ color: '#ff3b30' }); // red
+                const straw = new THREE.Mesh(strawGeo, strawMat);
+                straw.position.set(0.08, 0.54, 0.08);
+                straw.rotation.z = -Math.PI / 6;
+                straw.rotation.x = Math.PI / 12;
+                propGroup.add(straw);
+
+                const umbrellaPole = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.25, 4), new THREE.MeshStandardMaterial({ color: '#dfcca4' }));
+                umbrellaPole.position.set(-0.07, 0.51, -0.07);
+                umbrellaPole.rotation.z = Math.PI / 5;
+                
+                const umbrellaTop = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.06, 8), new THREE.MeshStandardMaterial({ color: '#ffcc00', roughness: 0.4 }));
+                umbrellaTop.position.set(-0.13, 0.61, -0.07);
+                umbrellaTop.rotation.z = Math.PI / 5;
+                propGroup.add(umbrellaPole, umbrellaTop);
+              } else {
+                // Palm tree
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 2.4, 8), trunkMat);
+                trunk.position.y = 1.2; propGroup.add(trunk);
+                for (let i = 0; i < 6; i++) {
+                  const angle = (i / 6) * Math.PI * 2;
+                  const frond = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.25), leafMat);
+                  frond.position.set(Math.cos(angle) * 0.6, 2.3, Math.sin(angle) * 0.6);
+                  frond.rotation.set(0, angle, Math.PI / 8);
+                  propGroup.add(frond);
+                }
+              }
+            } else if (isNatureTheme) {
               if (itemIndex === 0) {
                 // Beach Ball
                 const ball = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0xff3b30, roughness: 0.1 }));
@@ -1808,24 +1865,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                 fabric.rotation.x = Math.PI / 5; fabric.position.set(0, 0.2, 0);
                 propGroup.add(frame, fabric);
               } else {
-                // Palm tree / shrub
-                if (isTropicalTheme) {
-                  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.14, 2.4, 8), trunkMat);
-                  trunk.position.y = 1.2; propGroup.add(trunk);
-                  for (let i = 0; i < 6; i++) {
-                    const angle = (i / 6) * Math.PI * 2;
-                    const frond = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.02, 0.25), leafMat);
-                    frond.position.set(Math.cos(angle) * 0.6, 2.3, Math.sin(angle) * 0.6);
-                    frond.rotation.set(0, angle, Math.PI / 8);
-                    propGroup.add(frond);
-                  }
-                } else {
-                  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 1.0, 8), trunkMat);
-                  trunk.position.y = 0.5;
-                  const foliage = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 1.2), leafMat);
-                  foliage.position.y = 1.5;
-                  propGroup.add(trunk, foliage);
-                }
+                // Shrub
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.16, 1.0, 8), trunkMat);
+                trunk.position.y = 0.5;
+                const foliage = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.4, 1.2), leafMat);
+                foliage.position.y = 1.5;
+                propGroup.add(trunk, foliage);
               }
             }
             else if (isLavaTheme) {
