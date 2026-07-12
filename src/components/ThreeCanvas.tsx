@@ -1175,9 +1175,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
     const camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 1000);
     // Spawn player in different starting cells based on how they entered the level to prevent warp loops
-    const wasNearDoor = Math.round(playerPos.x / CELL_SIZE) === 1 && Math.round(playerPos.z / CELL_SIZE) === 3;
-    const wasNearWallWindow = Math.round(playerPos.x / CELL_SIZE) === 0 && Math.round(playerPos.z / CELL_SIZE) === 2;
-    const wasNearFloorWindow = Math.round(playerPos.x / CELL_SIZE) === 2 && Math.round(playerPos.z / CELL_SIZE) === 2;
+    const lastPos = (window as any).__lastTransitionPos || { x: 0, z: 0 };
+    const wasNearDoor = Math.round(lastPos.x / CELL_SIZE) === 1 && Math.round(lastPos.z / CELL_SIZE) === 3;
+    const wasNearWallWindow = Math.round(lastPos.x / CELL_SIZE) === 0 && Math.round(lastPos.z / CELL_SIZE) === 2;
+    const wasNearFloorWindow = Math.round(lastPos.x / CELL_SIZE) === 2 && Math.round(lastPos.z / CELL_SIZE) === 2;
+    // Clear transition reference
+    (window as any).__lastTransitionPos = null;
 
     if (wasNearDoor) {
       camera.position.set(CELL_SIZE * 1.0, 1.6, CELL_SIZE * 4.25);
@@ -3798,6 +3801,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (grid[px][pz] === 3) {
           const door = doorsRef.current.find(d => d.x === px && d.z === pz);
           if (door && door.isOpen) {
+            (window as any).__lastTransitionPos = { x: camera.position.x, z: camera.position.z };
             onLevelTransition(Math.floor(Math.random() * 1000000));
           }
         } else if (grid[px][pz] === 4) {
@@ -3806,6 +3810,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const relZ = camera.position.z - cellZ;
           const t = (relZ + CELL_SIZE / 2) / CELL_SIZE;
           if (t > 0.85) {
+            (window as any).__lastTransitionPos = { x: camera.position.x, z: camera.position.z };
             onLevelTransition(Math.floor(Math.random() * 1000000));
           }
         } else if (grid[px][pz] === 5) {
@@ -3825,6 +3830,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const winZ = pz * CELL_SIZE + offZ;
           const dist = Math.sqrt(Math.pow(camera.position.x - winX, 2) + Math.pow(camera.position.z - winZ, 2));
           if (dist < 0.8) {
+            (window as any).__lastTransitionPos = { x: camera.position.x, z: camera.position.z };
             onLevelTransition(Math.floor(Math.random() * 1000000));
           }
         } else if (grid[px][pz] === 6) {
@@ -3833,6 +3839,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const winZ = pz * CELL_SIZE;
           const dist = Math.sqrt(Math.pow(camera.position.x - winX, 2) + Math.pow(camera.position.z - winZ, 2));
           if (dist < 0.8) {
+            (window as any).__lastTransitionPos = { x: camera.position.x, z: camera.position.z };
             onLevelTransition(Math.floor(Math.random() * 1000000));
           }
         }
