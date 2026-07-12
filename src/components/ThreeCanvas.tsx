@@ -1174,10 +1174,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Perspective Camera
     const aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
     const camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 1000);
-    // Spawn player in cell [1, 1] or [1, 4] if they just crossed the door at [1, 3]
+    // Spawn player in different starting cells based on how they entered the level to prevent warp loops
     const wasNearDoor = Math.round(playerPos.x / CELL_SIZE) === 1 && Math.round(playerPos.z / CELL_SIZE) === 3;
+    const wasNearWallWindow = Math.round(playerPos.x / CELL_SIZE) === 0 && Math.round(playerPos.z / CELL_SIZE) === 2;
+    const wasNearFloorWindow = Math.round(playerPos.x / CELL_SIZE) === 2 && Math.round(playerPos.z / CELL_SIZE) === 2;
+
     if (wasNearDoor) {
       camera.position.set(CELL_SIZE * 1.0, 1.6, CELL_SIZE * 4.25);
+    } else if (wasNearWallWindow || wasNearFloorWindow) {
+      camera.position.set(CELL_SIZE * 3.0, 1.6, CELL_SIZE * 1.0); // Spawn at cell [3, 1] (opposite corner corridor)
     } else {
       camera.position.set(CELL_SIZE * 1.0, 1.6, CELL_SIZE * 1.0);
     }
