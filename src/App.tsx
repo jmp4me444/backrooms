@@ -46,7 +46,7 @@ export default function App() {
     if (isDead) return;
     setIsDead(true);
     if (soundOn) {
-      Synthesizer.stop();
+      Synthesizer.stopAll();
       Synthesizer.triggerEntityGlitch();
     }
     // Set a timeout to reset game state and restart after 3.5 seconds
