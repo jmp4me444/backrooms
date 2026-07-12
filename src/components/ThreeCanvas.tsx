@@ -4043,7 +4043,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         } else {
           // Active Chase Mode!
           uData.chaseTimer -= delta;
-          const distToPlayer = camera.position.distanceTo(entPos);
+          const distToPlayer = new THREE.Vector3(camera.position.x, 0, camera.position.z).distanceTo(entPos);
           setEntityDistance(distToPlayer);
 
           // Make the entity face the player (billboard orientation)
@@ -4144,7 +4144,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const m = b.mesh;
           const uData = m.userData;
           const mPos = m.position;
-          const dist = camera.position.distanceTo(mPos);
+          const dist = new THREE.Vector3(camera.position.x, 0, camera.position.z).distanceTo(mPos);
 
           if (!uData.isActive) {
             // Wake up when player gets within 6.5 meters
