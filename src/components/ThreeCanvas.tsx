@@ -3477,13 +3477,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       
       // Upper arm
       const leftUpperArmGroup = new THREE.Group();
-      createWireSegment(leftUpperArmGroup, 0.016, 0.65, new THREE.Vector3(0, -0.28, 0), new THREE.Euler(0.1, 0, -0.2));
+      createWireSegment(leftUpperArmGroup, 0.016, 0.95, new THREE.Vector3(0, -0.42, 0), new THREE.Euler(0.1, 0, -0.2));
       leftArmGroup.add(leftUpperArmGroup);
       
       // Lower arm (long creepy wire hanging down)
       const leftForearmGroup = new THREE.Group();
-      leftForearmGroup.position.set(0.05, -0.55, 0);
-      createWireSegment(leftForearmGroup, 0.014, 0.75, new THREE.Vector3(0, -0.32, 0), new THREE.Euler(0.2, 0, -0.05));
+      leftForearmGroup.position.set(0.05, -0.85, 0);
+      createWireSegment(leftForearmGroup, 0.014, 1.2, new THREE.Vector3(0, -0.52, 0), new THREE.Euler(0.2, 0, -0.05));
       leftUpperArmGroup.add(leftForearmGroup);
       entityGroup.add(leftArmGroup);
 
@@ -3493,13 +3493,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       
       // Upper arm
       const rightUpperArmGroup = new THREE.Group();
-      createWireSegment(rightUpperArmGroup, 0.016, 0.65, new THREE.Vector3(0, -0.28, 0), new THREE.Euler(-0.1, 0, 0.2));
+      createWireSegment(rightUpperArmGroup, 0.016, 0.95, new THREE.Vector3(0, -0.42, 0), new THREE.Euler(-0.1, 0, 0.2));
       rightArmGroup.add(rightUpperArmGroup);
       
       // Lower arm (long creepy wire hanging down)
       const rightForearmGroup = new THREE.Group();
-      rightForearmGroup.position.set(-0.05, -0.55, 0);
-      createWireSegment(rightForearmGroup, 0.014, 0.75, new THREE.Vector3(0, -0.32, 0), new THREE.Euler(-0.2, 0, 0.05));
+      rightForearmGroup.position.set(-0.05, -0.85, 0);
+      createWireSegment(rightForearmGroup, 0.014, 1.2, new THREE.Vector3(0, -0.52, 0), new THREE.Euler(-0.2, 0, 0.05));
       rightUpperArmGroup.add(rightForearmGroup);
       entityGroup.add(rightArmGroup);
 
