@@ -4103,7 +4103,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             uData.rightArm.rotation.set(0, 0, 0);
             uData.appearCooldown = 20.0 + Math.random() * 25.0;
             setEntityDistance(999.0);
-            return;
           }
 
           // Make the entity face the player (billboard orientation)
