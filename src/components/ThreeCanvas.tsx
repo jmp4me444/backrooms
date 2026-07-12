@@ -1237,6 +1237,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
 
     // Floor and Ceiling planes
+    const floorGeo = new THREE.PlaneGeometry(MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE);
+
     if (theme.floorTexture === 'water') {
       const tileGeo = new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE);
       const sideWallGeo = new THREE.PlaneGeometry(CELL_SIZE, 0.6);
@@ -1349,7 +1351,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
     } else {
-      const floorGeo = new THREE.PlaneGeometry(MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE);
       const floorMesh = new THREE.Mesh(floorGeo, floorMat);
       floorMesh.rotation.x = -Math.PI / 2;
       floorMesh.position.set((MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2, 0, (MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2);
