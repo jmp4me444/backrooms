@@ -1883,7 +1883,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     // 5. Environmental Lighting Setup
     const ambientLight = new THREE.AmbientLight(
-      theme.lightingStyle === 'matrix' ? 0x183a1c : // glowing dark green phosphor ambient
+      theme.lightingStyle === 'matrix' ? 0x3ca649 : // glowing bright green phosphor ambient
       theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666
     );
     scene.add(ambientLight);
