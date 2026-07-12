@@ -1437,12 +1437,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       roughness: isLobbyTheme ? 0.4 : 0.8 
     });
     const doorPanelMat = isLobbyTheme 
-      ? new THREE.MeshPhysicalMaterial({ 
-          color: '#e0f7fa', 
-          transparent: true, 
-          opacity: 0.4, 
-          transmission: 0.9, 
-          roughness: 0.1, 
+      ? new THREE.MeshStandardMaterial({ 
+          color: '#a69a80', 
+          roughness: 0.7, 
           metalness: 0.1 
         }) 
       : new THREE.MeshStandardMaterial({ color: '#5c4033', roughness: 0.9, metalness: 0.1 });
@@ -1579,12 +1576,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const postGeo = new THREE.BoxGeometry(0.08, doorHeight, 0.28);
           const postL = new THREE.Mesh(postGeo, frameMat);
           postL.position.set(-doorWidth / 2 - 0.04, doorHeight / 2, 0);
+          postL.castShadow = true; postL.receiveShadow = true;
           const postR = new THREE.Mesh(postGeo, frameMat);
           postR.position.set(doorWidth / 2 + 0.04, doorHeight / 2, 0);
+          postR.castShadow = true; postR.receiveShadow = true;
           
           const frameHeaderGeo = new THREE.BoxGeometry(doorWidth + 0.16, 0.08, 0.28);
           const frameHeader = new THREE.Mesh(frameHeaderGeo, frameMat);
           frameHeader.position.set(0, doorHeight + 0.04, 0);
+          frameHeader.castShadow = true; frameHeader.receiveShadow = true;
 
           doorGroup.add(postL);
           doorGroup.add(postR);
@@ -1600,23 +1600,28 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const panelMesh = new THREE.Mesh(panelGeo, doorPanelMat);
           panelMesh.position.set(panelW / 2, panelH / 2, 0);
           panelMesh.castShadow = true;
+          panelMesh.receiveShadow = true;
           swingGroup.add(panelMesh);
 
           // 6. Door Knob assembly
           const knobBackplateGeo = new THREE.BoxGeometry(0.05, 0.15, 0.01);
           const knobBackplateL = new THREE.Mesh(knobBackplateGeo, handleMat);
           knobBackplateL.position.set(panelW - 0.12, 1.0, 0.03);
+          knobBackplateL.castShadow = true; knobBackplateL.receiveShadow = true;
           swingGroup.add(knobBackplateL);
           const knobBackplateR = new THREE.Mesh(knobBackplateGeo, handleMat);
           knobBackplateR.position.set(panelW - 0.12, 1.0, -0.03);
+          knobBackplateR.castShadow = true; knobBackplateR.receiveShadow = true;
           swingGroup.add(knobBackplateR);
 
           const knobSphereGeo = new THREE.SphereGeometry(0.04, 12, 12);
           const knobSphereL = new THREE.Mesh(knobSphereGeo, handleMat);
           knobSphereL.position.set(panelW - 0.12, 1.0, 0.06);
+          knobSphereL.castShadow = true; knobSphereL.receiveShadow = true;
           swingGroup.add(knobSphereL);
           const knobSphereR = new THREE.Mesh(knobSphereGeo, handleMat);
           knobSphereR.position.set(panelW - 0.12, 1.0, -0.06);
+          knobSphereR.castShadow = true; knobSphereR.receiveShadow = true;
           swingGroup.add(knobSphereR);
 
           doorGroup.add(swingGroup);
