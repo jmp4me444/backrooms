@@ -596,12 +596,13 @@ export const checkStaticMatch = (query: string): boolean => {
   const GOLD_KEYWORDS = ['gold', 'golden', 'palace', 'royal', 'rich', 'luxury', 'treasure', 'wealth', 'valuable', 'gilded', 'wealthy', 'luxurious', 'affluent', 'opulent', 'regal', 'imperial', 'stately', 'shining', 'brilliant', 'glittering', 'sparkling'];
   const CIRCUS_KEYWORDS = ['circus', 'carnival', 'clown', 'tent', 'fair', 'fairground', 'carousel', 'funhouse', 'jester'];
   const MATRIX_KEYWORDS = ['matrix', 'code', 'binary', 'digital', 'neo', 'simulation', 'mainframe'];
+  const LOBBY_KEYWORDS = ['lobby', 'office', 'carpet', 'hum', 'yellow', 'beige', 'fluorescent', 'retro'];
 
   const allKeywords = [
     ...METAL_KEYWORDS, ...WATER_KEYWORDS, ...DARK_KEYWORDS, ...STERILE_KEYWORDS,
     ...ARCADE_KEYWORDS, ...NATURE_KEYWORDS, ...ENTITY_KEYWORDS, ...TROPICAL_KEYWORDS,
     ...LAVA_KEYWORDS, ...SNOW_KEYWORDS, ...DESERT_KEYWORDS, ...GOLD_KEYWORDS, ...CIRCUS_KEYWORDS,
-    ...MATRIX_KEYWORDS
+    ...MATRIX_KEYWORDS, ...LOBBY_KEYWORDS
   ];
 
   return words.some(w => allKeywords.includes(w));
