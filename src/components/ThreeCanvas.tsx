@@ -1133,8 +1133,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Perspective Camera
     const aspect = containerRef.current.clientWidth / containerRef.current.clientHeight;
     const camera = new THREE.PerspectiveCamera(65, aspect, 0.1, 1000);
-    // Spawn player in cell [1, 1]
-    camera.position.set(CELL_SIZE * 1.0, 1.6, CELL_SIZE * 1.0);
+    // Spawn player in cell [1, 1] or [1, 4] if they just crossed the door at [1, 3]
+    const wasNearDoor = Math.round(playerPos.x / CELL_SIZE) === 1 && Math.round(playerPos.z / CELL_SIZE) === 3;
+    if (wasNearDoor) {
+      camera.position.set(CELL_SIZE * 1.0, 1.6, CELL_SIZE * 4.25);
+    } else {
+      camera.position.set(CELL_SIZE * 1.0, 1.6, CELL_SIZE * 1.0);
+    }
     cameraRef.current = camera;
 
     // WebGL Renderer
