@@ -3164,7 +3164,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
 
       // Spawning floaties, ducks, and pool lounge chairs
-      if (theme.props.includes('duck') || theme.props.includes('floatie') || theme.props.includes('chair')) {
+      if (theme.props.includes('duck') || theme.props.includes('floatie') || theme.props.includes('pool-chair')) {
         const floatieTexture = () => {
           const canvas = document.createElement('canvas');
           canvas.width = 64;
@@ -3211,7 +3211,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               }
             } else {
               // Dry walkways - place white plastic lounge chairs
-              if (theme.props.includes('chair')) {
+              if (theme.props.includes('pool-chair')) {
                 const seed = Math.abs(Math.sin(x * 53.11 + z * 97.43));
                 if (seed < 0.16) {
                   // Check if next to a water cell

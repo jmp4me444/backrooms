@@ -165,7 +165,7 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     theme.ambientSound = 'drips';
     theme.fogColor = '#103f4a';
     theme.fogDensity = 0.032;
-    theme.props = ['duck', 'floatie', 'chair', 'fountain', 'bridge'];
+    theme.props = ['duck', 'floatie', 'pool-chair', 'fountain', 'bridge'];
     theme.entitySpawnChance = 0.05;
   } else if (hasTropical) {
     theme.name = 'Level T: The Tropical Oasis';
