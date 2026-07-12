@@ -354,6 +354,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       // Semi-gloss matrix console profile: (roughness 0.45 = value 115)
       ctx.fillStyle = 'rgba(115, 115, 115, 1)';
       ctx.fillRect(0, 0, size, size);
+    } else if (type === 'bamboo') {
+      // Semi-rough bamboo: (roughness 0.65 = value 166)
+      ctx.fillStyle = 'rgba(166, 166, 166, 1)';
+      ctx.fillRect(0, 0, size, size);
+    } else if (type === 'sand') {
+      // Highly rough sand: (roughness 0.92 = value 235)
+      ctx.fillStyle = 'rgba(235, 235, 235, 1)';
+      ctx.fillRect(0, 0, size, size);
     } else if (type === 'brick') {
       // Bricks: rough texture (roughness 0.75 = value 190), joints are rougher (roughness 0.92 = value 235)
       ctx.fillStyle = 'rgba(235, 235, 235, 1)';
@@ -763,6 +771,58 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const char = Math.random() > 0.5 ? '1' : '0';
           ctx.fillText(char, i, j);
         }
+      }
+    } else if (type === 'bamboo') {
+      // Draw vertical bamboo stalks
+      const colW = 16;
+      for (let i = 0; i < size; i += colW) {
+        // Bamboo stalk gradient
+        const grad = ctx.createLinearGradient(i, 0, i + colW, 0);
+        grad.addColorStop(0, '#5e7d44');
+        grad.addColorStop(0.35, '#8cb86b');
+        grad.addColorStop(0.7, '#a9d687');
+        grad.addColorStop(1.0, '#4f6c37');
+        ctx.fillStyle = grad;
+        ctx.fillRect(i, 0, colW, size);
+
+        // Draw node lines (horizontal rings) every 48 pixels
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        for (let y = 32; y < size; y += 48) {
+          ctx.fillRect(i, y, colW, 3);
+        }
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        for (let y = 33; y < size; y += 48) {
+          ctx.fillRect(i, y + 1, colW, 1.5);
+        }
+      }
+    } else if (type === 'sand') {
+      // Grainy beach sand: tan gold-cream base with tiny high-frequency grain dots
+      ctx.fillStyle = '#dfcca4';
+      ctx.fillRect(0, 0, size, size);
+
+      // Fine sand grains
+      for (let k = 0; k < 1800; k++) {
+        const sx = Math.random() * size;
+        const sy = Math.random() * size;
+        const colorSeed = Math.random();
+        ctx.fillStyle = colorSeed < 0.5 ? 'rgba(243, 228, 196, 0.6)' : 'rgba(187, 163, 119, 0.45)';
+        ctx.fillRect(sx, sy, 1.5, 1.5);
+      }
+    } else if (type === 'thatch') {
+      // Woven thatch/straw panels
+      ctx.fillStyle = '#bf9e75';
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw overlapping diagonal straw lines
+      ctx.lineWidth = 2.0;
+      for (let k = 0; k < 120; k++) {
+        ctx.strokeStyle = Math.random() < 0.5 ? '#8d6e45' : '#e0c090';
+        ctx.beginPath();
+        const startX = Math.random() * (size + 30) - 15;
+        const startY = Math.random() * (size + 30) - 15;
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(startX + 24 + Math.random() * 20, startY + 12 + Math.random() * 12);
+        ctx.stroke();
       }
     }
 
@@ -1992,6 +2052,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             propGroup.position.x += offsetX;
             propGroup.position.z += offsetZ;
 
+            // Enable shadow casting recursively on all prop meshes
+            propGroup.traverse(child => {
+              if (child instanceof THREE.Mesh) {
+                child.castShadow = true;
+                child.receiveShadow = true;
+              }
+            });
+
             mazeGroup.add(propGroup);
           }
         }
@@ -2001,16 +2069,35 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // 5. Environmental Lighting Setup
     const ambientLight = new THREE.AmbientLight(
       theme.lightingStyle === 'matrix' ? 0x3ca649 : // glowing bright green phosphor ambient
-      theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666
+      theme.lightingStyle === 'sunlight' ? 0xdcf0fa : // sky blue ambient
+      theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666,
+      theme.lightingStyle === 'sunlight' ? 0.95 : 1.0
     );
     scene.add(ambientLight);
 
-    // Directional subtle fog glow
-    const sunLight = new THREE.DirectionalLight(0xffffff, 0.15);
-    sunLight.position.set(10, 20, 10);
+    // Directional subtle fog glow or bright sunlight
+    let sunLight: THREE.DirectionalLight;
+    if (theme.lightingStyle === 'sunlight') {
+      sunLight = new THREE.DirectionalLight(0xfffce0, 1.8);
+      sunLight.position.set(20, 45, 10);
+      sunLight.castShadow = true;
+      sunLight.shadow.mapSize.width = 1024;
+      sunLight.shadow.mapSize.height = 1024;
+      sunLight.shadow.camera.near = 0.5;
+      sunLight.shadow.camera.far = 80;
+      const d = 16;
+      sunLight.shadow.camera.left = -d;
+      sunLight.shadow.camera.right = d;
+      sunLight.shadow.camera.top = d;
+      sunLight.shadow.camera.bottom = -d;
+      sunLight.shadow.bias = -0.0005;
+    } else {
+      sunLight = new THREE.DirectionalLight(0xffffff, 0.15);
+      sunLight.position.set(10, 20, 10);
+    }
     scene.add(sunLight);
 
-    if (theme.lightingStyle !== 'flashlight-only') {
+    if (theme.lightingStyle !== 'flashlight-only' && theme.lightingStyle !== 'sunlight') {
       const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : 1.5;
       const color = theme.lightingStyle === 'red-alarm' ? 0xff0000 : 
                     theme.lightingStyle === 'neon' ? 0x00ffff : 

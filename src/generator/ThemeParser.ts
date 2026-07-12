@@ -168,16 +168,16 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     theme.entitySpawnChance = 0.05;
   } else if (hasTropical) {
     theme.name = 'Level T: The Tropical Oasis';
-    theme.wallColor = '#81c784'; // bamboo/leaf green
-    theme.floorColor = '#e0cda9'; // beach sand tan
-    theme.ceilingColor = '#00bcd4'; // sky blue
-    theme.wallTexture = 'default';
-    theme.floorTexture = 'concrete'; // represents sand floor
-    theme.ceilingTexture = 'plaster';
-    theme.lightingStyle = 'fluorescent';
-    theme.ambientSound = 'crickets'; // jungle wind crickets
-    theme.fogColor = '#81c784';
-    theme.fogDensity = 0.03;
+    theme.wallColor = '#a3c293'; // bamboo green
+    theme.floorColor = '#dfcca4'; // beach sand tan
+    theme.ceilingColor = '#bf9e75'; // thatch roof brown
+    theme.wallTexture = 'bamboo';
+    theme.floorTexture = 'sand';
+    theme.ceilingTexture = 'thatch';
+    theme.lightingStyle = 'sunlight';
+    theme.ambientSound = 'waves'; // looping ocean wave swells
+    theme.fogColor = '#daf6fc';
+    theme.fogDensity = 0.016;
     theme.props = ['moss', 'puddle', 'column'];
     theme.entitySpawnChance = 0.1;
   } else if (hasLava) {

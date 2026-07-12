@@ -82,7 +82,7 @@ class SoundSynthesizer {
     this.currentSoundType = 'none';
   }
 
-  start(type: 'hum' | 'drips' | 'drone' | 'beeps' | 'synth' | 'crickets' | 'static') {
+  start(type: 'hum' | 'drips' | 'drone' | 'beeps' | 'synth' | 'crickets' | 'static' | 'waves') {
     this.init();
     this.resume();
     
@@ -94,8 +94,24 @@ class SoundSynthesizer {
 
     const ctx = this.audioCtx;
 
-    // Route every level ambient style to play the flickering fluorescent hum
-    this.createFluorescentHum(ctx);
+    // Route level ambient styles dynamically
+    if (type === 'drips') {
+      this.createWaterDrips(ctx);
+    } else if (type === 'drone') {
+      this.createIndustrialDrone(ctx);
+    } else if (type === 'beeps') {
+      this.createHospitalBeeps(ctx);
+    } else if (type === 'synth') {
+      this.createRetroSynthPad(ctx);
+    } else if (type === 'crickets') {
+      this.createCrickets(ctx);
+    } else if (type === 'static') {
+      this.createTvStatic(ctx);
+    } else if (type === 'waves') {
+      this.createOceanWaves(ctx);
+    } else {
+      this.createFluorescentHum(ctx);
+    }
   }
 
   private createFluorescentHum(ctx: AudioContext) {
@@ -512,6 +528,66 @@ class SoundSynthesizer {
     
     this.activeNodes.push(noise);
     this.activeNodes.push(crackle);
+  }
+
+  private createOceanWaves(ctx: AudioContext) {
+    // Generate pinkish-white noise
+    const bufferSize = ctx.sampleRate * 4; // 4 seconds of unique noise
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.7616 * b5 - white * 0.0168980;
+      output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 * 0.5362;
+      output[i] *= 0.11;
+      b6 = white * 0.115926;
+    }
+    
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    noise.loop = true;
+    
+    // Wave low-pass filter
+    const lpFilter = ctx.createBiquadFilter();
+    lpFilter.type = 'lowpass';
+    lpFilter.frequency.setValueAtTime(450, ctx.currentTime);
+    
+    // Main swell/retreat gain node
+    this.noiseGain = ctx.createGain();
+    this.noiseGain.gain.setValueAtTime(0.12, ctx.currentTime);
+    
+    // LFO to slowly sweep filter cutoff and volume gain
+    const lfo = ctx.createOscillator();
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(0.16, ctx.currentTime); // ~6 seconds cycle
+
+    const lfoGainVol = ctx.createGain();
+    lfoGainVol.gain.setValueAtTime(0.08, ctx.currentTime); // modulate volume by +/- 0.08
+
+    const lfoGainFilter = ctx.createGain();
+    lfoGainFilter.gain.setValueAtTime(150, ctx.currentTime); // modulate filter by +/- 150 Hz
+    
+    lfo.connect(lfoGainVol);
+    lfoGainVol.connect(this.noiseGain.gain);
+    
+    lfo.connect(lfoGainFilter);
+    lfoGainFilter.connect(lpFilter.frequency);
+    
+    noise.connect(lpFilter);
+    lpFilter.connect(this.noiseGain);
+    this.noiseGain.connect(this.masterGain!);
+    
+    noise.start();
+    lfo.start();
+    
+    this.activeNodes.push(noise, lfo, lpFilter, this.noiseGain, lfoGainVol, lfoGainFilter);
   }
 
   // Trigger a synchronized light crackle spark sound effect
