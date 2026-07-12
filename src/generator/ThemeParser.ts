@@ -140,16 +140,16 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
   // Determine dominant theme
   if (hasMetal) {
     theme.name = 'Industrial Maintenance Sector';
-    theme.wallColor = '#4a443f'; // rusty dark metal
-    theme.floorColor = '#2b2b2b'; // dark concrete
-    theme.ceilingColor = '#3a3530';
+    theme.wallColor = '#877b72'; // brightened rusty metal
+    theme.floorColor = '#5e5e5e'; // brightened concrete
+    theme.ceilingColor = '#7c7067';
     theme.wallTexture = 'metal';
     theme.floorTexture = 'concrete';
     theme.ceilingTexture = 'metal';
     theme.lightingStyle = 'red-alarm';
     theme.ambientSound = 'drone';
-    theme.fogColor = '#2e2520';
-    theme.fogDensity = 0.06;
+    theme.fogColor = '#594d44';
+    theme.fogDensity = 0.038;
     theme.props = ['column', 'pipe', 'vent', 'locker', 'hazard'];
     theme.entitySpawnChance = 0.4;
   } else if (hasWater) {

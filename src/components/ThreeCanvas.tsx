@@ -2115,6 +2115,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const ambientLight = new THREE.AmbientLight(
       theme.lightingStyle === 'matrix' ? 0x3ca649 : // glowing bright green phosphor ambient
       theme.lightingStyle === 'sunlight' ? 0xdcf0fa : // sky blue ambient
+      theme.lightingStyle === 'red-alarm' ? 0x886e68 : // warmer/brighter rusty-orange ambient glow
       theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666,
       theme.lightingStyle === 'sunlight' ? 0.95 : 1.0
     );
