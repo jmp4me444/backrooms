@@ -252,16 +252,16 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     theme.entitySpawnChance = 0.45;
   } else if (hasMatrix) {
     theme.name = 'Level M: The Matrix Core';
-    theme.wallColor = '#050906';
-    theme.floorColor = '#020402';
-    theme.ceilingColor = '#050906';
+    theme.wallColor = '#0d2210';
+    theme.floorColor = '#081a0b';
+    theme.ceilingColor = '#0d2210';
     theme.wallTexture = 'matrix';
-    theme.floorTexture = 'concrete';
-    theme.ceilingTexture = 'concrete';
-    theme.lightingStyle = 'misty'; // green matrix glow
+    theme.floorTexture = 'matrix';
+    theme.ceilingTexture = 'matrix';
+    theme.lightingStyle = 'matrix'; // green matrix glow
     theme.ambientSound = 'static'; // mainframe hum
-    theme.fogColor = '#020502';
-    theme.fogDensity = 0.06;
+    theme.fogColor = '#021a05';
+    theme.fogDensity = 0.038;
     theme.props = ['column', 'vent'];
     theme.entitySpawnChance = 0.25;
   } else if (hasSterile) {

@@ -344,6 +344,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       // Glossy cyber floor: (roughness 0.25 = value 64)
       ctx.fillStyle = 'rgba(64, 64, 64, 1)';
       ctx.fillRect(0, 0, size, size);
+    } else if (type === 'matrix') {
+      // Semi-gloss matrix console profile: (roughness 0.45 = value 115)
+      ctx.fillStyle = 'rgba(115, 115, 115, 1)';
+      ctx.fillRect(0, 0, size, size);
     } else if (type === 'brick') {
       // Bricks: rough texture (roughness 0.75 = value 190), joints are rougher (roughness 0.92 = value 235)
       ctx.fillStyle = 'rgba(235, 235, 235, 1)';
@@ -1879,6 +1883,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     // 5. Environmental Lighting Setup
     const ambientLight = new THREE.AmbientLight(
+      theme.lightingStyle === 'matrix' ? 0x183a1c : // glowing dark green phosphor ambient
       theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666
     );
     scene.add(ambientLight);
@@ -1890,8 +1895,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     if (theme.lightingStyle !== 'flashlight-only') {
       const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : 1.5;
-      const color = theme.lightingStyle === 'red-alarm' ? 0xff0000 : theme.lightingStyle === 'neon' ? 0x00ffff : 0xfffae0;
-      const glowColor = theme.lightingStyle === 'red-alarm' ? 0xff3333 : theme.lightingStyle === 'neon' ? 0x00f0ff : 0xffffe0;
+      const color = theme.lightingStyle === 'red-alarm' ? 0xff0000 : 
+                    theme.lightingStyle === 'neon' ? 0x00ffff : 
+                    theme.lightingStyle === 'matrix' ? 0x39ff14 : 0xfffae0; // phosphor green!
+      const glowColor = theme.lightingStyle === 'red-alarm' ? 0xff3333 : 
+                        theme.lightingStyle === 'neon' ? 0x00f0ff : 
+                        theme.lightingStyle === 'matrix' ? 0x66ff88 : 0xffffe0;
 
       for (let x = 1; x < MAP_SIZE - 1; x++) {
         for (let z = 1; z < MAP_SIZE - 1; z++) {
