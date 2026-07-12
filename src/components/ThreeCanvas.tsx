@@ -2729,8 +2729,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const pedestalGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.9, 6);
         const pedestalMat = new THREE.MeshStandardMaterial({ color: '#bbbbbb', roughness: 0.8 });
         
-        const particleGeo = new THREE.SphereGeometry(0.016, 4, 4);
-        const particleMat = new THREE.MeshBasicMaterial({ color: '#c4f2ff', transparent: true, opacity: 0.92 });
+        // Static clean water column spout
+        const spoutGeo = new THREE.CylinderGeometry(0.04, 0.22, 0.65, 8);
+        const spoutMat = new THREE.MeshPhysicalMaterial({ 
+          color: '#85d2ff', 
+          transparent: true, 
+          opacity: 0.65,
+          roughness: 0.02,
+          transmission: 0.85,
+          ior: 1.333
+        });
 
         for (let x = 1; x < MAP_SIZE - 1; x++) {
           for (let z = 1; z < MAP_SIZE - 1; z++) {
@@ -2752,35 +2760,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               const ped = new THREE.Mesh(pedestalGeo, pedestalMat);
               ped.position.y = 0.45;
               fountainGroup.add(ped);
-              
-              const particlesList: any[] = [];
-              for (let p = 0; p < 25; p++) {
-                const pMesh = new THREE.Mesh(particleGeo, particleMat);
-                pMesh.position.set(
-                  posX + (Math.random() - 0.5) * 0.1,
-                  0.88,
-                  posZ + (Math.random() - 0.5) * 0.1
-                );
-                scene.add(pMesh);
-                
-                const angle = Math.random() * Math.PI * 2;
-                const speed = 0.18 + Math.random() * 0.35;
-                particlesList.push({
-                  mesh: pMesh,
-                  vx: Math.cos(angle) * speed * 0.85,
-                  vy: 1.6 + Math.random() * 1.0,
-                  vz: Math.sin(angle) * speed * 0.85,
-                  oy: 0.88
-                });
-              }
+
+              const spout = new THREE.Mesh(spoutGeo, spoutMat);
+              spout.position.set(0, 0.775, 0);
+              fountainGroup.add(spout);
               
               fountainGroup.position.set(posX, 0, posZ);
               scene.add(fountainGroup);
-              
-              fountainsRef.current.push({
-                mesh: fountainGroup,
-                particles: particlesList
-              });
               
               breakablesRef.current.push({ mesh: fountainGroup, type: 'metal' });
             }
@@ -3743,44 +3729,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
       debrisRef.current = activeDebris;
 
-      // D. Update Water Fountains Particle Physics and Proximity Audio
-      fountainsRef.current.forEach(f => {
-        // Droplets physics simulation
-        f.particles.forEach(p => {
-          p.vy -= 9.8 * delta; // gravity
-          p.mesh.position.x += p.vx * delta;
-          p.mesh.position.y += p.vy * delta;
-          p.mesh.position.z += p.vz * delta;
 
-          // Reset droplet if it hits the water basin level (y = 0.25)
-          if (p.mesh.position.y < 0.25) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 0.18 + Math.random() * 0.35;
-            p.mesh.position.set(
-              f.mesh.position.x + (Math.random() - 0.5) * 0.1,
-              p.oy,
-              f.mesh.position.z + (Math.random() - 0.5) * 0.1
-            );
-            p.vx = Math.cos(angle) * speed * 0.85;
-            p.vy = 1.6 + Math.random() * 1.0;
-            p.vz = Math.sin(angle) * speed * 0.85;
-          }
-        });
-
-        // Localized sound check
-        const dist = camera.position.distanceTo(f.mesh.position);
-        if (dist < 4.5 && soundOn) {
-          // Play a soft trickling splash sound at random intervals based on proximity
-          if (Math.random() < 0.007) {
-            const timeNow = performance.now();
-            if (timeNow - lastSplashTime > 150) {
-              lastSplashTime = timeNow;
-              const vol = Math.max(0.04, 0.32 * (1.0 - dist / 4.5));
-              Synthesizer.triggerWaterSplash(vol);
-            }
-          }
-        }
-      });
 
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);
@@ -3813,18 +3762,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       
-      // Dispose fountain particles
-      fountainsRef.current.forEach(f => {
-        f.particles.forEach(p => {
-          scene.remove(p.mesh);
-          p.mesh.geometry.dispose();
-          if (Array.isArray(p.mesh.material)) {
-            p.mesh.material.forEach(m => m.dispose());
-          } else {
-            p.mesh.material.dispose();
-          }
-        });
-      });
 
       // Dispose materials & geometries
       mazeGroup.traverse(obj => {
