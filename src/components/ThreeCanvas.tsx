@@ -1263,7 +1263,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       normalMap: wallMaps.normalMap,
       normalScale: new THREE.Vector2(0.35, 0.35),
       roughnessMap: wallMaps.roughnessMap,
-      metalness: theme.wallTexture === 'metal' ? 0.85 : 0.05,
+      roughness: 0.35,
+      metalness: theme.wallTexture === 'metal' ? 0.85 : 0.15,
     });
     const floorMat = new THREE.MeshStandardMaterial({
       map: floorMaps.map,
