@@ -2340,6 +2340,29 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
                   propGroup.add(cabinet);
                 }
+                else if (selectedProp === 'stapler') {
+                  const standGroup = new THREE.Group();
+                  const standMat = new THREE.MeshStandardMaterial({ color: '#444444', roughness: 0.7 });
+                  
+                  const table = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.65, 0.4), standMat);
+                  table.position.y = 0.325;
+                  standGroup.add(table);
+
+                  const staplerGroup = new THREE.Group();
+                  const redPlasticMat = new THREE.MeshStandardMaterial({ color: '#d32f2f', roughness: 0.25 });
+                  const metalMat = new THREE.MeshStandardMaterial({ color: '#cccccc', metalness: 0.9, roughness: 0.2 });
+
+                  const base = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.015, 0.04), metalMat);
+                  base.position.y = 0.66;
+                  
+                  const topArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.04), redPlasticMat);
+                  topArm.position.set(-0.01, 0.685, 0);
+                  topArm.rotation.z = Math.PI / 18;
+                  
+                  staplerGroup.add(base, topArm);
+                  standGroup.add(staplerGroup);
+                  propGroup.add(standGroup);
+                }
               } else {
                 const trashCan = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.16, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0x757575, metalness: 0.5 }));
                 trashCan.position.y = 0.25;
