@@ -10,6 +10,7 @@ import vaultGateImg from './assets/vault_gate.jpg';
 
 const PRESET_THEMES = [
   { label: 'Yellow Lobby', query: 'yellow walls, office, hum' },
+  { label: 'Submerged Poolrooms', query: 'pools, water fountains, canals, swimming pools, ducks, floaties, chairs' },
   { label: 'Jungle Oasis', query: 'jungle' },
   { label: 'Tropical Beach', query: 'beach' },
   { label: 'Sterile Hospital', query: 'hospital' },

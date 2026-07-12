@@ -153,18 +153,18 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     theme.props = ['column', 'pipe', 'vent', 'locker', 'hazard'];
     theme.entitySpawnChance = 0.4;
   } else if (hasWater) {
-    theme.name = 'The Poolrooms';
-    theme.wallColor = '#a8e6cf'; // bright teal tiles
-    theme.floorColor = '#3d84a8'; // water surface
-    theme.ceilingColor = '#a8e6cf';
+    theme.name = 'Level 37: Submerged Poolrooms';
+    theme.wallColor = '#cbebee'; // clean light cyan pool tiles
+    theme.floorColor = '#125463'; // deep pool water
+    theme.ceilingColor = '#cbebee';
     theme.wallTexture = 'tiles';
     theme.floorTexture = 'water';
     theme.ceilingTexture = 'tiles';
     theme.lightingStyle = 'misty';
     theme.ambientSound = 'drips';
-    theme.fogColor = '#1d5e5e';
-    theme.fogDensity = 0.05;
-    theme.props = ['column', 'puddle'];
+    theme.fogColor = '#103f4a';
+    theme.fogDensity = 0.032;
+    theme.props = ['duck', 'floatie', 'chair', 'fountain', 'bridge'];
     theme.entitySpawnChance = 0.05;
   } else if (hasTropical) {
     theme.name = 'Level T: The Tropical Oasis';

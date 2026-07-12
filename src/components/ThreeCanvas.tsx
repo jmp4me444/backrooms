@@ -42,6 +42,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [activeDoorNear, setActiveDoorNear] = useState<any | null>(null);
   const [flashlightOn, setFlashlightOn] = useState<boolean>(true);
   const [noclipMode, setNoclipMode] = useState<boolean>(false);
+  const noclipRef = useRef<boolean>(noclipMode);
+  useEffect(() => {
+    noclipRef.current = noclipMode;
+  }, [noclipMode]);
   const [playerPos, setPlayerPos] = useState<{ x: number; z: number }>({ x: 0, z: 0 });
  
   // Refs for animation loop & input tracking
@@ -74,6 +78,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const hasHitThisSwingRef = useRef<boolean>(false);
   const breakablesRef = useRef<{ mesh: THREE.Object3D; type: 'wood' | 'metal' | 'plastic' | 'soft' }[]>([]);
   const debrisRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; spawnTime: number }[]>([]);
+  const waterCellsRef = useRef<Set<string>>(new Set());
+  const fountainsRef = useRef<{ mesh: THREE.Group; particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; oy: number }[] }[]>([]);
 
   // Map dimensions
   const MAP_SIZE = 14;
@@ -1215,30 +1221,140 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const mazeGroup = new THREE.Group();
     scene.add(mazeGroup);
 
-    // Floor and Ceiling planes
-    const floorGeo = new THREE.PlaneGeometry(MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE);
-    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.set((MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2, 0, (MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2);
-    floorMesh.receiveShadow = true;
-    mazeGroup.add(floorMesh);
-
-    // Special Water Plane if water theme
+    // Populate water cells set based on deterministic seed noise if theme is poolrooms
+    waterCellsRef.current = new Set();
     if (theme.floorTexture === 'water') {
-      const waterGeo = new THREE.PlaneGeometry(MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE);
+      for (let x = 0; x < MAP_SIZE; x++) {
+        for (let z = 0; z < MAP_SIZE; z++) {
+          if (grid[x][z] === 0) {
+            const val = Math.abs(Math.sin(x * 79.19 + z * 104.729));
+            if (val < 0.44 && (x !== 1 || z !== 1)) {
+              waterCellsRef.current.add(`${x},${z}`);
+            }
+          }
+        }
+      }
+    }
+
+    // Floor and Ceiling planes
+    if (theme.floorTexture === 'water') {
+      const tileGeo = new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE);
+      const sideWallGeo = new THREE.PlaneGeometry(CELL_SIZE, 0.6);
+      
+      const waterGeo = new THREE.PlaneGeometry(CELL_SIZE, CELL_SIZE);
       const waterMat = new THREE.MeshPhysicalMaterial({
         color: '#1a5f6e',
         transparent: true,
-        opacity: 0.75,
+        opacity: 0.72,
         roughness: 0.05,
-        metalness: 0.1,
-        transmission: 0.8,
+        metalness: 0.15,
+        transmission: 0.82,
         ior: 1.333,
       });
-      const waterMesh = new THREE.Mesh(waterGeo, waterMat);
-      waterMesh.rotation.x = -Math.PI / 2;
-      waterMesh.position.set((MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2, 0.05, (MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2);
-      mazeGroup.add(waterMesh);
+
+      for (let x = 0; x < MAP_SIZE; x++) {
+        for (let z = 0; z < MAP_SIZE; z++) {
+          if (grid[x][z] !== 0) continue; // wall cell
+          
+          const posX = x * CELL_SIZE;
+          const posZ = z * CELL_SIZE;
+          const isWater = waterCellsRef.current.has(`${x},${z}`);
+
+          if (!isWater) {
+            // Dry walkway tile
+            const cellFloor = new THREE.Mesh(tileGeo, floorMat);
+            cellFloor.rotation.x = -Math.PI / 2;
+            cellFloor.position.set(posX, 0, posZ);
+            cellFloor.receiveShadow = true;
+            mazeGroup.add(cellFloor);
+          } else {
+            // Water cell: recessed bottom tile
+            const cellBottom = new THREE.Mesh(tileGeo, floorMat);
+            cellBottom.rotation.x = -Math.PI / 2;
+            cellBottom.position.set(posX, -0.6, posZ);
+            cellBottom.receiveShadow = true;
+            mazeGroup.add(cellBottom);
+
+            // Water surface
+            const waterMesh = new THREE.Mesh(waterGeo, waterMat);
+            waterMesh.rotation.x = -Math.PI / 2;
+            waterMesh.position.set(posX, -0.08, posZ);
+            mazeGroup.add(waterMesh);
+
+            // Side walls to seal the cavity
+            const dirs = [
+              { dx: -1, dz: 0, rotY: Math.PI / 2, posXOffset: -CELL_SIZE / 2, posZOffset: 0 },
+              { dx: 1, dz: 0, rotY: -Math.PI / 2, posXOffset: CELL_SIZE / 2, posZOffset: 0 },
+              { dx: 0, dz: -1, rotY: Math.PI, posXOffset: 0, posZOffset: -CELL_SIZE / 2 },
+              { dx: 0, dz: 1, rotY: 0, posXOffset: 0, posZOffset: CELL_SIZE / 2 }
+            ];
+
+            dirs.forEach(d => {
+              const nx = x + d.dx;
+              const nz = z + d.dz;
+              const isAdjacentDry = (nx < 0 || nx >= MAP_SIZE || nz < 0 || nz >= MAP_SIZE || grid[nx][nz] !== 0 || !waterCellsRef.current.has(`${nx},${nz}`));
+              
+              if (isAdjacentDry) {
+                const side = new THREE.Mesh(sideWallGeo, floorMat);
+                side.position.set(posX + d.posXOffset, -0.3, posZ + d.posZOffset);
+                side.rotation.y = d.rotY;
+                side.receiveShadow = true;
+                mazeGroup.add(side);
+              }
+            });
+
+            // Bridge Spawning: if opposite sides are dry, spawn an arched walkway bridge
+            const hasLeftDry = (x > 0 && !waterCellsRef.current.has(`${x - 1},${z}`) && grid[x - 1][z] === 0);
+            const hasRightDry = (x < MAP_SIZE - 1 && !waterCellsRef.current.has(`${x + 1},${z}`) && grid[x + 1][z] === 0);
+            const hasBackDry = (z > 0 && !waterCellsRef.current.has(`${x},${z - 1}`) && grid[x][z - 1] === 0);
+            const hasFrontDry = (z < MAP_SIZE - 1 && !waterCellsRef.current.has(`${x},${z + 1}`) && grid[x][z + 1] === 0);
+
+            const isHorizontalBridge = hasLeftDry && hasRightDry;
+            const isVerticalBridge = hasBackDry && hasFrontDry;
+
+            if (isHorizontalBridge || isVerticalBridge) {
+              const bridgeGroup = new THREE.Group();
+              const woodMat = new THREE.MeshStandardMaterial({ color: '#5c4033', roughness: 0.9 });
+              const railMat = new THREE.MeshStandardMaterial({ color: '#3d2b1f', roughness: 0.8 });
+
+              // Arch plank
+              const archGeo = new THREE.BoxGeometry(CELL_SIZE + 0.1, 0.08, 0.9);
+              const arch = new THREE.Mesh(archGeo, woodMat);
+              arch.position.y = 0.08;
+              bridgeGroup.add(arch);
+
+              // Hand rails
+              const railL = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE + 0.1, 0.06, 0.06), railMat);
+              railL.position.set(0, 0.45, -0.42);
+              const railR = new THREE.Mesh(new THREE.BoxGeometry(CELL_SIZE + 0.1, 0.06, 0.06), railMat);
+              railR.position.set(0, 0.45, 0.42);
+              bridgeGroup.add(railL, railR);
+
+              // Rail posts
+              for (let offset = -CELL_SIZE / 2 + 0.2; offset <= CELL_SIZE / 2 - 0.2; offset += CELL_SIZE / 3) {
+                const postL = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 4), railMat);
+                postL.position.set(offset, 0.225, -0.42);
+                const postR = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.45, 4), railMat);
+                postR.position.set(offset, 0.225, 0.42);
+                bridgeGroup.add(postL, postR);
+              }
+
+              bridgeGroup.position.set(posX, 0, posZ);
+              if (isVerticalBridge) {
+                bridgeGroup.rotation.y = Math.PI / 2;
+              }
+              mazeGroup.add(bridgeGroup);
+            }
+          }
+        }
+      }
+    } else {
+      const floorGeo = new THREE.PlaneGeometry(MAP_SIZE * CELL_SIZE, MAP_SIZE * CELL_SIZE);
+      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.position.set((MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2, 0, (MAP_SIZE * CELL_SIZE) / 2 - CELL_SIZE / 2);
+      floorMesh.receiveShadow = true;
+      mazeGroup.add(floorMesh);
     }
 
     const ceilMesh = new THREE.Mesh(floorGeo, ceilMat);
@@ -2535,6 +2651,214 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
         }
       }
+
+      // Helper to construct a detailed yellow rubber duck
+      const createDuckMesh = () => {
+        const duckGroup = new THREE.Group();
+        const yellowMat = new THREE.MeshStandardMaterial({ color: '#ffea00', roughness: 0.18 });
+        const orangeMat = new THREE.MeshStandardMaterial({ color: '#ff6d00', roughness: 0.2 });
+        const blackMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.5 });
+        
+        // Body
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), yellowMat);
+        body.scale.set(1.2, 1, 1.4);
+        duckGroup.add(body);
+        
+        // Head
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.085, 8, 8), yellowMat);
+        head.position.set(0, 0.12, 0.08);
+        duckGroup.add(head);
+        
+        // Beak
+        const beak = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.035, 0.065), orangeMat);
+        beak.position.set(0, 0.11, 0.16);
+        duckGroup.add(beak);
+        
+        // Eyes
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), blackMat);
+        eyeL.position.set(-0.05, 0.14, 0.13);
+        const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.012, 4, 4), blackMat);
+        eyeR.position.set(0.05, 0.14, 0.13);
+        duckGroup.add(eyeL, eyeR);
+        
+        return duckGroup;
+      };
+
+      // Helper to construct a white plastic lounge chair
+      const createLoungeChairMesh = () => {
+        const chairGroup = new THREE.Group();
+        const whiteMat = new THREE.MeshStandardMaterial({ color: '#f5f5f5', roughness: 0.6 });
+        
+        // Seat base
+        const seat = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.04, 0.8), whiteMat);
+        seat.position.set(0, 0.24, 0.1);
+        seat.rotation.x = 0.05;
+        chairGroup.add(seat);
+        
+        // Backrest
+        const back = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.04, 0.68), whiteMat);
+        back.position.set(0, 0.46, -0.26);
+        back.rotation.x = -0.65;
+        chairGroup.add(back);
+        
+        // Front legs
+        const legF1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.24, 4), whiteMat);
+        legF1.position.set(-0.21, 0.12, 0.4);
+        const legF2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.24, 4), whiteMat);
+        legF2.position.set(0.21, 0.12, 0.4);
+        chairGroup.add(legF1, legF2);
+        
+        // Back legs
+        const legB1 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.24, 4), whiteMat);
+        legB1.position.set(-0.21, 0.12, -0.2);
+        const legB2 = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.24, 4), whiteMat);
+        legB2.position.set(0.21, 0.12, -0.2);
+        chairGroup.add(legB1, legB2);
+        
+        return chairGroup;
+      };
+
+      // Spawn Water Fountains
+      if (theme.props.includes('fountain')) {
+        fountainsRef.current = [];
+        const basinGeo = new THREE.CylinderGeometry(0.8, 0.8, 0.35, 12);
+        const basinWaterGeo = new THREE.CylinderGeometry(0.76, 0.76, 0.02, 12);
+        const basinMat = new THREE.MeshStandardMaterial({ color: '#cccccc', roughness: 0.8 });
+        const basinWaterMat = new THREE.MeshBasicMaterial({ color: '#5dade2', transparent: true, opacity: 0.7 });
+        const pedestalGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.9, 6);
+        const pedestalMat = new THREE.MeshStandardMaterial({ color: '#bbbbbb', roughness: 0.8 });
+        
+        const particleGeo = new THREE.SphereGeometry(0.016, 4, 4);
+        const particleMat = new THREE.MeshBasicMaterial({ color: '#c4f2ff', transparent: true, opacity: 0.92 });
+
+        for (let x = 1; x < MAP_SIZE - 1; x++) {
+          for (let z = 1; z < MAP_SIZE - 1; z++) {
+            if (x % 4 === 0 && z % 4 === 2 && grid[x][z] === 0 && !waterCellsRef.current.has(`${x},${z}`)) {
+              const posX = x * CELL_SIZE;
+              const posZ = z * CELL_SIZE;
+              
+              const fountainGroup = new THREE.Group();
+              
+              const basin = new THREE.Mesh(basinGeo, basinMat);
+              basin.position.y = 0.175;
+              basin.receiveShadow = true;
+              fountainGroup.add(basin);
+              
+              const bWater = new THREE.Mesh(basinWaterGeo, basinWaterMat);
+              bWater.position.y = 0.32;
+              fountainGroup.add(bWater);
+              
+              const ped = new THREE.Mesh(pedestalGeo, pedestalMat);
+              ped.position.y = 0.45;
+              fountainGroup.add(ped);
+              
+              const particlesList: any[] = [];
+              for (let p = 0; p < 25; p++) {
+                const pMesh = new THREE.Mesh(particleGeo, particleMat);
+                pMesh.position.set(
+                  posX + (Math.random() - 0.5) * 0.1,
+                  0.88,
+                  posZ + (Math.random() - 0.5) * 0.1
+                );
+                scene.add(pMesh);
+                
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 0.18 + Math.random() * 0.35;
+                particlesList.push({
+                  mesh: pMesh,
+                  vx: Math.cos(angle) * speed * 0.85,
+                  vy: 1.6 + Math.random() * 1.0,
+                  vz: Math.sin(angle) * speed * 0.85,
+                  oy: 0.88
+                });
+              }
+              
+              fountainGroup.position.set(posX, 0, posZ);
+              scene.add(fountainGroup);
+              
+              fountainsRef.current.push({
+                mesh: fountainGroup,
+                particles: particlesList
+              });
+              
+              breakablesRef.current.push({ mesh: fountainGroup, type: 'metal' });
+            }
+          }
+        }
+      }
+
+      // Spawning floaties, ducks, and pool lounge chairs
+      if (theme.props.includes('duck') || theme.props.includes('floatie') || theme.props.includes('chair')) {
+        const floatieTexture = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 64;
+          canvas.height = 16;
+          const ctx = canvas.getContext('2d')!;
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, 64, 16);
+          ctx.fillStyle = '#ff3b30';
+          for (let i = 0; i < 64; i += 16) {
+            ctx.fillRect(i, 0, 8, 16);
+          }
+          const texture = new THREE.CanvasTexture(canvas);
+          texture.wrapS = THREE.RepeatWrapping;
+          texture.repeat.set(4, 1);
+          return texture;
+        };
+
+        const floatieMat = new THREE.MeshStandardMaterial({ map: floatieTexture(), roughness: 0.25 });
+        const floatieGeo = new THREE.TorusGeometry(0.32, 0.09, 8, 16);
+
+        for (let x = 1; x < MAP_SIZE - 1; x++) {
+          for (let z = 1; z < MAP_SIZE - 1; z++) {
+            if (grid[x][z] !== 0) continue;
+            
+            const posX = x * CELL_SIZE;
+            const posZ = z * CELL_SIZE;
+            const isWater = waterCellsRef.current.has(`${x},${z}`);
+
+            if (isWater) {
+              const seed = Math.abs(Math.sin(x * 37.19 + z * 83.279));
+              
+              if (seed < 0.13 && theme.props.includes('duck')) {
+                const duck = createDuckMesh();
+                duck.position.set(posX + (Math.random() - 0.5) * 1.5, -0.08, posZ + (Math.random() - 0.5) * 1.5);
+                duck.rotation.y = Math.random() * Math.PI * 2;
+                scene.add(duck);
+                breakablesRef.current.push({ mesh: duck, type: 'plastic' });
+              } else if (seed > 0.87 && theme.props.includes('floatie')) {
+                const floatie = new THREE.Mesh(floatieGeo, floatieMat);
+                floatie.rotation.x = Math.PI / 2;
+                floatie.position.set(posX + (Math.random() - 0.5) * 1.5, -0.08, posZ + (Math.random() - 0.5) * 1.5);
+                scene.add(floatie);
+                breakablesRef.current.push({ mesh: floatie, type: 'plastic' });
+              }
+            } else {
+              // Dry walkways - place white plastic lounge chairs
+              if (theme.props.includes('chair')) {
+                const seed = Math.abs(Math.sin(x * 53.11 + z * 97.43));
+                if (seed < 0.16) {
+                  // Check if next to a water cell
+                  const hasAdjacentWater = [
+                    { dx: -1, dz: 0, rotY: -Math.PI / 2 },
+                    { dx: 1, dz: 0, rotY: Math.PI / 2 },
+                    { dx: 0, dz: -1, rotY: Math.PI },
+                    { dx: 0, dz: 1, rotY: 0 }
+                  ].find(d => waterCellsRef.current.has(`${x + d.dx},${z + d.dz}`));
+                  
+                  if (hasAdjacentWater) {
+                    const chair = createLoungeChairMesh();
+                    chair.position.set(posX + hasAdjacentWater.dx * 0.9, 0, posZ + hasAdjacentWater.dz * 0.9);
+                    chair.rotation.y = hasAdjacentWater.rotY;
+                    scene.add(chair);
+                    breakablesRef.current.push({ mesh: chair, type: 'plastic' });
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     };
 
     spawnProps();
@@ -2724,6 +3048,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     let animationFrameId: number;
     let lastTime = performance.now();
     let clockStart = performance.now();
+    let stepTimer = 0;
+    let lastSplashTime = 0;
 
     const loop = () => {
       const currentTime = performance.now();
@@ -2757,7 +3083,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const speed = 3.5;
       const moveVector = new THREE.Vector3(0, 0, 0);
 
-      if (noclipMode) {
+      if (noclipRef.current) {
         // In noclip, allow full 3D flight in the camera's gaze direction
         const verticalMove = new THREE.Vector3(0, 0, 0);
         if (keysRef.current['w'] || keysRef.current['arrowup']) verticalMove.z -= 1;
@@ -2784,7 +3110,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       // Basic collision checks (slide along walls)
       const nextPos = camera.position.clone().add(moveVector);
       
-      if (noclipMode) {
+      if (noclipRef.current) {
         camera.position.copy(nextPos);
       } else {
         const buffer = 0.22;
@@ -2907,9 +3233,32 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const t = (relZ + CELL_SIZE / 2) / CELL_SIZE;
             const stairClimb = Math.max(0, Math.min(1, t)) * 3.5;
             targetY = 1.6 + stairClimb;
+          } else if (waterCellsRef.current.has(`${px},${pz}`)) {
+            targetY = 1.2; // chest-deep water wading height!
           }
         }
-        camera.position.y = targetY; // lock player height or follow stair slope
+        
+        // Smoothly interpolate player camera height down/up
+        camera.position.y += (targetY - camera.position.y) * 6.5 * delta;
+
+        // Play wading footstep splashes if moving in water
+        const isMoving = (keysRef.current['w'] || keysRef.current['s'] || keysRef.current['a'] || keysRef.current['d'] ||
+                          keysRef.current['arrowup'] || keysRef.current['arrowdown'] || keysRef.current['arrowleft'] || keysRef.current['arrowright'] ||
+                          (joyLeftTouch.current && joyLeftTouch.current.active));
+        
+        if (isMoving && waterCellsRef.current.has(`${px},${pz}`)) {
+          stepTimer += delta;
+          if (stepTimer >= 0.44) {
+            stepTimer = 0;
+            const timeNow = performance.now();
+            if (timeNow - lastSplashTime > 150) {
+              lastSplashTime = timeNow;
+              Synthesizer.triggerWaterSplash(0.45);
+            }
+          }
+        } else {
+          stepTimer = 0;
+        }
       }
 
       setPlayerPos({ x: camera.position.x, z: camera.position.z });
@@ -3393,6 +3742,45 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
       debrisRef.current = activeDebris;
 
+      // D. Update Water Fountains Particle Physics and Proximity Audio
+      fountainsRef.current.forEach(f => {
+        // Droplets physics simulation
+        f.particles.forEach(p => {
+          p.vy -= 9.8 * delta; // gravity
+          p.mesh.position.x += p.vx * delta;
+          p.mesh.position.y += p.vy * delta;
+          p.mesh.position.z += p.vz * delta;
+
+          // Reset droplet if it hits the water basin level (y = 0.25)
+          if (p.mesh.position.y < 0.25) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 0.18 + Math.random() * 0.35;
+            p.mesh.position.set(
+              f.mesh.position.x + (Math.random() - 0.5) * 0.1,
+              p.oy,
+              f.mesh.position.z + (Math.random() - 0.5) * 0.1
+            );
+            p.vx = Math.cos(angle) * speed * 0.85;
+            p.vy = 1.6 + Math.random() * 1.0;
+            p.vz = Math.sin(angle) * speed * 0.85;
+          }
+        });
+
+        // Localized sound check
+        const dist = camera.position.distanceTo(f.mesh.position);
+        if (dist < 4.5 && soundOn) {
+          // Play a soft trickling splash sound at random intervals based on proximity
+          if (Math.random() < 0.007) {
+            const timeNow = performance.now();
+            if (timeNow - lastSplashTime > 150) {
+              lastSplashTime = timeNow;
+              const vol = Math.max(0.04, 0.32 * (1.0 - dist / 4.5));
+              Synthesizer.triggerWaterSplash(vol);
+            }
+          }
+        }
+      });
+
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);
     };
@@ -3424,6 +3812,19 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       
+      // Dispose fountain particles
+      fountainsRef.current.forEach(f => {
+        f.particles.forEach(p => {
+          scene.remove(p.mesh);
+          p.mesh.geometry.dispose();
+          if (Array.isArray(p.mesh.material)) {
+            p.mesh.material.forEach(m => m.dispose());
+          } else {
+            p.mesh.material.dispose();
+          }
+        });
+      });
+
       // Dispose materials & geometries
       mazeGroup.traverse(obj => {
         if (obj instanceof THREE.Mesh) {
@@ -3438,7 +3839,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       scene.clear();
       renderer.dispose();
     };
-  }, [theme, items, flashlightOn, noclipMode]);
+  }, [theme]);
 
   // Remove found items from visual scene
   useEffect(() => {
@@ -3452,6 +3853,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
     });
   }, [items]);
+
+  // Synchronize flashlight visibility state dynamically without level rebuilds
+  useEffect(() => {
+    if (flashlightRef.current) {
+      flashlightRef.current.visible = flashlightOn;
+    }
+  }, [flashlightOn]);
 
   // Translate units to coordinates for rendering maps
   const renderMiniMap = () => {

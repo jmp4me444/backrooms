@@ -218,8 +218,14 @@ class SoundSynthesizer {
       
       osc.start(dripTime);
       osc.stop(dripTime + 0.2);
+
+      osc.onended = () => {
+        try { osc.disconnect(); } catch (e) {}
+        try { gain.disconnect(); } catch (e) {}
+      };
       
-      // Set next drip timeout
+      // Set next drip timeout and prune intervals list
+      this.intervals = [];
       const nextTime = 1200 + Math.random() * 3000;
       const id = window.setTimeout(scheduleDrip, nextTime);
       this.intervals.push(id);
@@ -677,6 +683,63 @@ class SoundSynthesizer {
       noise.stop(now + 0.25);
     }
   }
+
+  // Synthesize a highly realistic water splash wading or splashing sound effect
+  triggerWaterSplash(volumeScale: number = 1.0) {
+    if (!this.audioCtx || !this.masterGain) return;
+    this.init();
+    this.resume();
+
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+
+    // 1. Splash low plop component
+    const plop = ctx.createOscillator();
+    const plopGain = ctx.createGain();
+    plop.type = 'sine';
+    plop.frequency.setValueAtTime(140, now);
+    plop.frequency.exponentialRampToValueAtTime(70, now + 0.12);
+
+    plopGain.gain.setValueAtTime(0.35 * volumeScale * this.volumeLevel, now);
+    plopGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+    plop.connect(plopGain);
+    plopGain.connect(this.masterGain);
+    plop.start(now);
+    plop.stop(now + 0.2);
+
+    plop.onended = () => {
+      try { plop.disconnect(); } catch (e) {}
+      try { plopGain.disconnect(); } catch (e) {}
+    };
+
+    // 2. High-pass noise spray component (droplet spray)
+    const noise = ctx.createBufferSource();
+    noise.buffer = this.getNoiseBuffer(ctx);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(1200, now);
+    filter.frequency.exponentialRampToValueAtTime(300, now + 0.25);
+
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.22 * volumeScale * this.volumeLevel, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+
+    noise.start(now);
+    noise.stop(now + 0.3);
+
+    noise.onended = () => {
+      try { noise.disconnect(); } catch (e) {}
+      try { filter.disconnect(); } catch (e) {}
+      try { noiseGain.disconnect(); } catch (e) {}
+    };
+  }
+
   // Synthesize a quick whoosh sound for swinging the hammer
   triggerSwingWhoosh() {
     if (!this.audioCtx || !this.masterGain) return;
