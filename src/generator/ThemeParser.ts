@@ -86,7 +86,7 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
     fogColor: '#d6c596',
     fogDensity: 0.04,
 
-    props: ['column', 'chair'],
+    props: ['column', 'desk', 'computer', 'chair', 'cooler', 'copier', 'coffee', 'cabinet'],
     entitySpawnChance: 0.15,
   };
 
