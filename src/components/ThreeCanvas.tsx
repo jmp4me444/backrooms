@@ -4085,6 +4085,22 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const distToPlayer = new THREE.Vector3(camera.position.x, 0, camera.position.z).distanceTo(entPos);
           setEntityDistance(distToPlayer);
 
+          // Safe Zone: If player is climbing stairs, instantly dissolve the monster to prevent cheap transition deaths
+          const checkPx = Math.round(camera.position.x / CELL_SIZE);
+          const checkPz = Math.round(camera.position.z / CELL_SIZE);
+          const isPlayerOnStairs = checkPx >= 0 && checkPx < MAP_SIZE && checkPz >= 0 && checkPz < MAP_SIZE && grid[checkPx][checkPz] === 4;
+          if (isPlayerOnStairs) {
+            ent.visible = false;
+            uData.isChasing = false;
+            uData.leftLeg.rotation.set(0, 0, 0);
+            uData.rightLeg.rotation.set(0, 0, 0);
+            uData.leftArm.rotation.set(0, 0, 0);
+            uData.rightArm.rotation.set(0, 0, 0);
+            uData.appearCooldown = 20.0 + Math.random() * 25.0;
+            setEntityDistance(999.0);
+            return;
+          }
+
           // Make the entity face the player (billboard orientation)
           ent.lookAt(camera.position.x, entPos.y, camera.position.z);
 
