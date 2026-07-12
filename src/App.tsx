@@ -40,6 +40,22 @@ export default function App() {
   const [volume, setVolume] = useState(0.4);
   const [entityDistance, setEntityDistance] = useState(999.0);
 
+  const [isDead, setIsDead] = useState(false);
+
+  const handlePlayerDeath = () => {
+    if (isDead) return;
+    setIsDead(true);
+    if (soundOn) {
+      Synthesizer.stop();
+      Synthesizer.triggerEntityGlitch();
+    }
+    // Set a timeout to reset game state and restart after 3.5 seconds
+    setTimeout(() => {
+      setIsDead(false);
+      handleSynthesis('yellow walls, office, hum');
+    }, 3500);
+  };
+
   // Side Drawer Toggles
   const [showLogs, setShowLogs] = useState(false);
   const [showDossier, setShowDossier] = useState(false);
@@ -242,6 +258,28 @@ export default function App() {
 
   return (
     <div className="w-screen h-screen bg-[#070b07] text-[#10b981] relative select-none overflow-hidden flex flex-col">
+      {isDead && (
+        <div 
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'black',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 99999,
+            fontFamily: 'monospace',
+            color: '#ff3b30',
+            textShadow: '0 0 10px #ff3b30, 0 0 20px #ff3b30',
+            fontSize: '64px',
+            fontWeight: 'bold',
+            letterSpacing: '0.25em',
+            textTransform: 'uppercase',
+          }}
+        >
+          YOU DIED
+        </div>
+      )}
       
       {/* 3D Viewport - Fullscreen Background */}
       <div className="absolute inset-0 w-full h-full z-0">
@@ -254,6 +292,7 @@ export default function App() {
             entityDistance={entityDistance}
             setEntityDistance={setEntityDistance}
             onLevelTransition={handleLevelTransition}
+            onPlayerDeath={handlePlayerDeath}
           />
         )}
       </div>

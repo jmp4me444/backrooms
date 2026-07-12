@@ -14,6 +14,7 @@ interface ThreeCanvasProps {
   entityDistance: number;
   setEntityDistance: (dist: number) => void;
   onLevelTransition: (newSeed: number) => void;
+  onPlayerDeath?: () => void;
 }
 
 interface LightState {
@@ -32,6 +33,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   entityDistance,
   setEntityDistance,
   onLevelTransition,
+  onPlayerDeath,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -4071,10 +4073,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }
           }
 
-          // "chasing you, but not catching you":
-          // Dissolve / vanish when it gets within 2.8 meters (close range visual contact)
-          // or if the timer expires.
-          if (distToPlayer < 2.8 || uData.chaseTimer <= 0) {
+          // Touch player check: trigger death sequence when wire monster gets within 0.95 meters
+          if (distToPlayer < 0.95) {
+            if (onPlayerDeath) {
+              onPlayerDeath();
+            }
+            return;
+          }
+
+          // Dissolve / vanish when the timer expires.
+          if (uData.chaseTimer <= 0) {
             Synthesizer.triggerEntityGlitch();
             
             // Creepy dissolve transition: set invisible, reset states
