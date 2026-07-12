@@ -2181,10 +2181,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               }
             }
             else {
-              const allowedProps = theme.props.filter((p: string) => ['desk', 'computer', 'chair', 'cooler', 'copier', 'coffee', 'cabinet'].includes(p));
+              const allowedProps = theme.props.filter((p: string) => ['desk', 'computer', 'chair', 'cooler', 'copier', 'coffee', 'cabinet', 'stapler'].includes(p));
               if (allowedProps.length > 0) {
                 const selectedProp = allowedProps[(x + z) % allowedProps.length];
                 
+                // Deterministic glitch state: 16% chance floor clip, 16% chance wall clip
+                const glitchSeed = Math.abs(Math.sin(x * 23.45 + z * 56.78) * 100) % 1;
+                const isFloorGlitched = glitchSeed < 0.16;
+                const isWallGlitched = glitchSeed >= 0.16 && glitchSeed < 0.32;
+
                 if (selectedProp === 'desk' || selectedProp === 'computer') {
                   const deskGroup = new THREE.Group();
                   const woodMat = new THREE.MeshStandardMaterial({ color: '#8b5a2b', roughness: 0.7 });
@@ -2230,6 +2235,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                     deskGroup.add(compGroup);
                   }
 
+                  // Apply glitch positions
+                  if (isFloorGlitched) {
+                    deskGroup.position.y = -0.32;
+                    deskGroup.position.x = -1.3;
+                  } else if (isWallGlitched) {
+                    deskGroup.position.x = -1.9; // embedded halfway into left wall (x = -2.0)
+                  } else {
+                    deskGroup.position.x = -1.3;
+                  }
+
                   propGroup.add(deskGroup);
                 } 
                 else if (selectedProp === 'chair') {
@@ -2250,6 +2265,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   starBase.position.y = 0.08;
 
                   chairGroup.add(seat, back, pole, starBase);
+
+                  if (isFloorGlitched) {
+                    chairGroup.position.y = -0.22;
+                    chairGroup.position.x = -1.1;
+                  } else if (isWallGlitched) {
+                    chairGroup.position.x = -1.9;
+                  } else {
+                    chairGroup.position.x = -1.1;
+                  }
+
                   propGroup.add(chairGroup);
                 }
                 else if (selectedProp === 'cooler') {
@@ -2281,6 +2306,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   hotTab.position.set(-0.06, 0.62, 0.18);
                   coolerGroup.add(coldTab, hotTab);
 
+                  if (isFloorGlitched) {
+                    coolerGroup.position.y = -0.35;
+                    coolerGroup.position.x = -1.4;
+                  } else if (isWallGlitched) {
+                    coolerGroup.position.x = -1.92;
+                  } else {
+                    coolerGroup.position.x = -1.4;
+                  }
+
                   propGroup.add(coolerGroup);
                 }
                 else if (selectedProp === 'copier') {
@@ -2306,6 +2340,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   tray.rotation.z = Math.PI / 12;
                   copierGroup.add(tray);
 
+                  if (isFloorGlitched) {
+                    copierGroup.position.y = -0.4;
+                    copierGroup.position.x = -1.35;
+                  } else if (isWallGlitched) {
+                    copierGroup.position.x = -1.82;
+                  } else {
+                    copierGroup.position.x = -1.35;
+                  }
+
                   propGroup.add(copierGroup);
                 }
                 else if (selectedProp === 'coffee') {
@@ -2330,17 +2373,36 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   liquid.position.set(0, 0.65, 0.05);
                   coffeeGroup.add(liquid);
 
+                  if (isFloorGlitched) {
+                    coffeeGroup.position.y = -0.3;
+                    coffeeGroup.position.x = -1.35;
+                  } else if (isWallGlitched) {
+                    coffeeGroup.position.x = -1.82;
+                  } else {
+                    coffeeGroup.position.x = -1.35;
+                  }
+
                   propGroup.add(coffeeGroup);
                 }
                 else if (selectedProp === 'cabinet') {
                   const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.48, 1.25, 0.5), new THREE.MeshStandardMaterial({ color: '#78909c', metalness: 0.7, roughness: 0.4 }));
-                  cabinet.position.y = 0.625;
                   
                   const fileHandleMat = new THREE.MeshStandardMaterial({ color: '#eeeeee', metalness: 0.9, roughness: 0.2 });
                   for (let hy = 0.25; hy <= 1.05; hy += 0.3) {
                     const handle = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.02, 0.02), fileHandleMat);
                     handle.position.set(0, hy, 0.26);
                     cabinet.add(handle);
+                  }
+
+                  if (isFloorGlitched) {
+                    cabinet.position.y = 0.075;
+                    cabinet.position.x = -1.45;
+                  } else if (isWallGlitched) {
+                    cabinet.position.y = 0.625;
+                    cabinet.position.x = -1.88;
+                  } else {
+                    cabinet.position.y = 0.625;
+                    cabinet.position.x = -1.45;
                   }
 
                   propGroup.add(cabinet);
@@ -2366,6 +2428,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                   
                   staplerGroup.add(base, topArm);
                   standGroup.add(staplerGroup);
+
+                  if (isFloorGlitched) {
+                    standGroup.position.y = -0.32;
+                    standGroup.position.x = -1.45;
+                  } else if (isWallGlitched) {
+                    standGroup.position.x = -1.92;
+                  } else {
+                    standGroup.position.x = -1.45;
+                  }
+
                   propGroup.add(standGroup);
                 }
               } else {
