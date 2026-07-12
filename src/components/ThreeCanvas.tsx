@@ -193,6 +193,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     let closestBreakable = null;
     let closestDist = 2.6; // Forgiving melee range
+    let hitWireMonster = false;
+
+    // Check hit on active chasing wire monster
+    if (entityMeshRef.current && entityMeshRef.current.visible && entityMeshRef.current.userData.isChasing) {
+      const ent = entityMeshRef.current;
+      const entPos = new THREE.Vector3();
+      ent.getWorldPosition(entPos);
+
+      // Compute horizontal distance
+      const dist = new THREE.Vector3(playerPos.x, 0, playerPos.z).distanceTo(new THREE.Vector3(entPos.x, 0, entPos.z));
+      if (dist < closestDist) {
+        const dirToObj = entPos.clone().sub(playerPos).normalize();
+        const dot = forward.dot(dirToObj);
+        if (dot > 0.45) {
+          closestDist = dist;
+          hitWireMonster = true;
+        }
+      }
+    }
 
     for (let breakable of breakablesRef.current) {
       const objPos = new THREE.Vector3();
@@ -208,11 +227,31 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (dot > 0.45) {
           closestBreakable = breakable;
           closestDist = dist;
+          hitWireMonster = false; // Normal objects take precedence if closer
         }
       }
     }
 
-    if (closestBreakable) {
+    if (hitWireMonster && entityMeshRef.current) {
+      const ent = entityMeshRef.current;
+      const uData = ent.userData;
+      
+      // Play metal smash sound & burst black wire debris particles
+      Synthesizer.triggerSmashSound('metal');
+      spawnDebrisParticles(ent);
+
+      // Reset wire monster chase states and set cooldown
+      ent.visible = false;
+      uData.isChasing = false;
+
+      uData.leftLeg.rotation.set(0, 0, 0);
+      uData.rightLeg.rotation.set(0, 0, 0);
+      uData.leftArm.rotation.set(0, 0, 0);
+      uData.rightArm.rotation.set(0, 0, 0);
+
+      uData.appearCooldown = 30.0 + Math.random() * 30.0;
+      setEntityDistance(999.0);
+    } else if (closestBreakable) {
       smashObject(closestBreakable);
     }
   };
