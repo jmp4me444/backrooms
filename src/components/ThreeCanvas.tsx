@@ -80,6 +80,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const debrisRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; spawnTime: number }[]>([]);
   const waterCellsRef = useRef<Set<string>>(new Set());
   const fountainsRef = useRef<{ mesh: THREE.Group; particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; oy: number }[] }[]>([]);
+  const steamParticlesRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; life: number; maxLife: number; ox: number; oy: number; oz: number }[]>([]);
 
   // Map dimensions
   const MAP_SIZE = 14;
@@ -1424,8 +1425,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     ceilMesh.receiveShadow = true;
     mazeGroup.add(ceilMesh);
 
-    // Reset doors list
+    // Reset doors and steam particles lists
     doorsRef.current = [];
+    steamParticlesRef.current = [];
 
     // Door and tree materials
     const doorFrameMat = new THREE.MeshStandardMaterial({ color: '#2d2319', roughness: 0.8 });
@@ -1904,19 +1906,104 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             }
             else if (isMetalTheme) {
               if (itemIndex === 0) {
-                const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, CELL_SIZE, 8), new THREE.MeshStandardMaterial({ color: 0x776655, metalness: 0.8 }));
-                pipe.rotation.x = Math.PI / 2; pipe.position.set(-1.9, 2.5, 0); propGroup.add(pipe);
+                // Pipe with Steam
+                const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, CELL_SIZE, 8), new THREE.MeshStandardMaterial({ color: 0x6e635c, metalness: 0.85, roughness: 0.4 }));
+                pipe.rotation.x = Math.PI / 2; pipe.position.set(-1.92, 2.4, 0); propGroup.add(pipe);
+
+                const valve = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.25, 6), new THREE.MeshStandardMaterial({ color: 0xaa8877, metalness: 0.9 }));
+                valve.position.set(-1.8, 2.3, 0);
+                valve.rotation.x = Math.PI / 3;
+                propGroup.add(valve);
+
+                // Spawn steam particles
+                const steamGeo = new THREE.SphereGeometry(0.06, 4, 4);
+                const steamMat = new THREE.MeshBasicMaterial({ color: 0xdddddd, transparent: true, opacity: 0.16 });
+                for (let s = 0; s < 8; s++) {
+                  const sMesh = new THREE.Mesh(steamGeo, steamMat);
+                  const sx = posX - 1.8;
+                  const sy = 2.3;
+                  const sz = posZ;
+                  sMesh.position.set(sx, sy, sz);
+                  scene.add(sMesh);
+                  
+                  steamParticlesRef.current.push({
+                    mesh: sMesh,
+                    vx: 0.25 + Math.random() * 0.35, // blow out away from wall
+                    vy: -0.15 + Math.random() * 0.35, // drift
+                    vz: (Math.random() - 0.5) * 0.4,
+                    life: Math.random() * 1.5,
+                    maxLife: 1.5 + Math.random() * 1.5,
+                    ox: sx,
+                    oy: sy,
+                    oz: sz
+                  });
+                }
               } else if (itemIndex === 1) {
-                const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.9, 8), new THREE.MeshStandardMaterial({ color: 0x8d6e63, metalness: 0.7 }));
-                barrel.position.y = 0.45; propGroup.add(barrel);
+                // Garbage Dumpster embedded in wall and floor
+                const dumpsterGroup = new THREE.Group();
+                
+                const dumpBodyGeo = new THREE.BoxGeometry(0.75, 0.65, 0.95);
+                const dumpBodyMat = new THREE.MeshStandardMaterial({ color: '#2b5e35', roughness: 0.8 }); // dark green
+                const dumpBody = new THREE.Mesh(dumpBodyGeo, dumpBodyMat);
+                dumpBody.position.set(-1.65, 0.325, 0);
+                dumpsterGroup.add(dumpBody);
+
+                const lidGeo = new THREE.BoxGeometry(0.78, 0.04, 0.48);
+                const lidMat = new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.9 });
+                const lid = new THREE.Mesh(lidGeo, lidMat);
+                lid.position.set(-1.65, 0.65, 0.24);
+                lid.rotation.x = Math.PI / 6;
+                dumpsterGroup.add(lid);
+
+                const wheelMat = new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.9 });
+                const w1 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.08, 6), wheelMat);
+                w1.position.set(-1.4, 0.04, 0.35); w1.rotation.z = Math.PI / 2;
+                const w2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.08, 6), wheelMat);
+                w2.position.set(-1.4, 0.04, -0.35); w2.rotation.z = Math.PI / 2;
+                dumpsterGroup.add(w1, w2);
+
+                const bagMat = new THREE.MeshStandardMaterial({ color: '#151515', roughness: 0.1, metalness: 0.2 }); // black plastic
+                const b1 = new THREE.Mesh(new THREE.SphereGeometry(0.2, 5, 5), bagMat);
+                b1.position.set(-1.15, 0.18, 0.38);
+                const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.18, 5, 5), bagMat);
+                b2.position.set(-1.22, 0.16, 0.24);
+                dumpsterGroup.add(b1, b2);
+
+                propGroup.add(dumpsterGroup);
               } else {
-                const fuseBox = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.6, 0.4), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-                fuseBox.position.set(-1.92, 1.6, 0);
-                const greenL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
-                greenL.position.set(-1.86, 1.7, 0.1);
-                const redL = new THREE.Mesh(new THREE.SphereGeometry(0.03, 4, 4), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-                redL.position.set(-1.86, 1.5, 0.1);
-                propGroup.add(fuseBox, greenL, redL);
+                // HVAC System
+                const hvacGroup = new THREE.Group();
+
+                const cabinetGeo = new THREE.BoxGeometry(0.8, 1.0, 1.1);
+                const cabinetMat = new THREE.MeshStandardMaterial({ color: '#7a8a99', roughness: 0.5, metalness: 0.65 });
+                const cabinet = new THREE.Mesh(cabinetGeo, cabinetMat);
+                cabinet.position.set(-1.6, 0.5, 0);
+                hvacGroup.add(cabinet);
+
+                const fanCasing = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.05, 10), new THREE.MeshStandardMaterial({ color: '#444444', metalness: 0.8 }));
+                fanCasing.position.set(-1.6, 1.025, 0);
+                hvacGroup.add(fanCasing);
+
+                const bladeMat = new THREE.MeshStandardMaterial({ color: '#111111', metalness: 0.9 });
+                for (let i = 0; i < 3; i++) {
+                  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.01, 0.06), bladeMat);
+                  blade.position.set(-1.6, 1.04, 0);
+                  blade.rotation.y = (i / 3) * Math.PI * 2 + Math.PI / 6;
+                  hvacGroup.add(blade);
+                }
+
+                const slotMat = new THREE.MeshBasicMaterial({ color: '#111111' });
+                for (let sy = 0.25; sy <= 0.75; sy += 0.12) {
+                  const slot = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.04, 0.65), slotMat);
+                  slot.position.set(-1.19, sy, 0);
+                  hvacGroup.add(slot);
+                }
+
+                const bag = new THREE.Mesh(new THREE.SphereGeometry(0.22, 5, 5), new THREE.MeshStandardMaterial({ color: '#222222', roughness: 0.15 }));
+                bag.position.set(-1.1, 0.2, 0.45);
+                hvacGroup.add(bag);
+
+                propGroup.add(hvacGroup);
               }
             }
             else if (isFrozenTheme) {
@@ -3862,7 +3949,35 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
       debrisRef.current = activeDebris;
 
+      // Update Steam Particles Animation
+      steamParticlesRef.current.forEach(p => {
+        p.life += delta;
+        
+        // Drift and expand
+        p.mesh.position.x += p.vx * delta;
+        p.mesh.position.y += p.vy * delta;
+        p.mesh.position.z += p.vz * delta;
+        
+        // Slowly grow in size
+        const scale = 1.0 + (p.life / p.maxLife) * 2.2;
+        p.mesh.scale.set(scale, scale, scale);
 
+        // Fade out
+        const progress = p.life / p.maxLife;
+        if (p.mesh.material) {
+          (p.mesh.material as THREE.Material).opacity = 0.16 * (1.0 - progress);
+        }
+
+        // Reset particle if lifetime expired
+        if (p.life >= p.maxLife) {
+          p.life = 0;
+          p.mesh.position.set(p.ox, p.oy, p.oz);
+          p.mesh.scale.set(1, 1, 1);
+          if (p.mesh.material) {
+            (p.mesh.material as THREE.Material).opacity = 0.16;
+          }
+        }
+      });
 
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);
@@ -3895,6 +4010,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       
+      // Dispose steam particles
+      steamParticlesRef.current.forEach(p => {
+        scene.remove(p.mesh);
+        p.mesh.geometry.dispose();
+        if (Array.isArray(p.mesh.material)) {
+          p.mesh.material.forEach(m => m.dispose());
+        } else {
+          p.mesh.material.dispose();
+        }
+      });
 
       // Dispose materials & geometries
       mazeGroup.traverse(obj => {
