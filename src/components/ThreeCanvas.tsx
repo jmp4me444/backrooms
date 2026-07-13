@@ -4908,22 +4908,31 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
       
+      // Track distance to nearest glitched wall to emit EMF static (radar check)
+      let minGlitchWallDist = 999.0;
+
       // Vibrating visual glitched wall animations (Option 1)
       if (glitchedWallsRef.current.length > 0) {
         for (let mesh of glitchedWallsRef.current) {
           const initX = mesh.userData.initialX;
           const initZ = mesh.userData.initialZ;
-          const vibX = (Math.random() - 0.5) * 0.045;
-          const vibZ = (Math.random() - 0.5) * 0.045;
+          const vibX = (Math.random() - 0.5) * 0.12;
+          const vibZ = (Math.random() - 0.5) * 0.12;
           mesh.position.x = initX + vibX;
           mesh.position.z = initZ + vibZ;
           
           const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-          const flick = 0.05 + Math.random() * 0.12;
+          const flick = 0.15 + Math.random() * 0.35;
           for (let m of mats) {
             if ((m as any).emissive) {
+              (m as any).emissive.setHex(0xff5500);
               (m as any).emissiveIntensity = flick;
             }
+          }
+
+          const d = camera.position.distanceTo(mesh.position);
+          if (d < minGlitchWallDist) {
+            minGlitchWallDist = d;
           }
         }
       }
@@ -4934,9 +4943,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       const monsterInt = monsterDist < 18.0 ? Math.pow(Math.max(0, (18.0 - monsterDist) / 18.0), 1.8) : 0;
       const sparkInt = minSparkDist < 6.0 ? Math.pow(Math.max(0, (6.0 - minSparkDist) / 6.0), 1.5) * 0.35 : 0;
+      const glitchWallInt = minGlitchWallDist < 6.5 ? Math.pow(Math.max(0, (6.5 - minGlitchWallDist) / 6.5), 1.5) * 0.55 : 0;
       
       // If player is no-clipping inside the glitched wall, force maximum static/glitch distortion!
-      const totalEMF = inGlitchedWall ? 1.0 : Math.min(1.0, monsterInt + sparkInt);
+      const totalEMF = inGlitchedWall ? 1.0 : Math.min(1.0, monsterInt + sparkInt + glitchWallInt);
       
       // Update Audio Synthesizer EMF Static volume
       Synthesizer.setEMFIntensity(totalEMF);
