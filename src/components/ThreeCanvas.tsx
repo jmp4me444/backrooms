@@ -3855,7 +3855,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         rightArm: rightArmGroup,
         isChasing: false,
         chaseTimer: 0,
-        appearCooldown: 2.0 + Math.random() * 4.0, // starts with a short initial delay so the player sees it early
+        appearCooldown: 60.0 + Math.random() * 25.0, // Wait at least 60 seconds (one minute) after level start
       };
 
       // Set initial position
