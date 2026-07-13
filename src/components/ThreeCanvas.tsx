@@ -1337,6 +1337,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       roughnessMap: wallMaps.roughnessMap,
       roughness: 0.35,
       metalness: theme.wallTexture === 'metal' ? 0.85 : 0.15,
+      emissiveMap: theme.wallTexture === 'cyber' ? wallMaps.map : undefined,
+      emissive: theme.wallTexture === 'cyber' ? new THREE.Color(0x6a0dad) : new THREE.Color(0x000000), // glowing purple grids
+      emissiveIntensity: theme.wallTexture === 'cyber' ? 0.35 : 0.0,
     });
     const floorMat = new THREE.MeshStandardMaterial({
       map: floorMaps.map,
@@ -1344,12 +1347,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       normalScale: new THREE.Vector2(0.4, 0.4),
       roughnessMap: floorMaps.roughnessMap,
       metalness: theme.floorTexture === 'water' ? 0.35 : 0.05,
+      emissiveMap: theme.floorTexture === 'cyber' ? floorMaps.map : undefined,
+      emissive: theme.floorTexture === 'cyber' ? new THREE.Color(0x3d0066) : new THREE.Color(0x000000),
+      emissiveIntensity: theme.floorTexture === 'cyber' ? 0.35 : 0.0,
     });
     const ceilMat = new THREE.MeshStandardMaterial({
       map: ceilMaps.map,
       normalMap: ceilMaps.normalMap,
       normalScale: new THREE.Vector2(0.25, 0.25),
       roughnessMap: ceilMaps.roughnessMap,
+      emissiveMap: theme.ceilingTexture === 'cyber' ? ceilMaps.map : undefined,
+      emissive: theme.ceilingTexture === 'cyber' ? new THREE.Color(0x3d0066) : new THREE.Color(0x000000),
+      emissiveIntensity: theme.ceilingTexture === 'cyber' ? 0.35 : 0.0,
     });
 
     // 4. Construct Room Geometries
@@ -2654,6 +2663,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       theme.lightingStyle === 'matrix' ? 0x3ca649 : // glowing bright green phosphor ambient
       theme.lightingStyle === 'sunlight' ? 0xdcf0fa : // sky blue ambient
       theme.lightingStyle === 'red-alarm' ? 0x886e68 : // warmer/brighter rusty-orange ambient glow
+      theme.lightingStyle === 'neon' ? 0x4f228f : // bright violet-blue ambient for Neon Playrooms!
       theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666,
       theme.lightingStyle === 'sunlight' ? 0.95 : 1.0
     );
@@ -2683,7 +2693,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     scene.add(sunLight);
 
     if (theme.lightingStyle !== 'flashlight-only' && theme.lightingStyle !== 'sunlight') {
-      const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : 1.5;
+      const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : theme.lightingStyle === 'neon' ? 3.5 : 1.5;
       const color = theme.lightingStyle === 'red-alarm' ? 0xff0000 : 
                     theme.lightingStyle === 'neon' ? 0x00ffff : 
                     theme.lightingStyle === 'matrix' ? 0x39ff14 : 0xfffae0; // phosphor green!
