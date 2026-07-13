@@ -1,3 +1,4 @@
+// ThreeCanvas.tsx - Procedural 3D Backrooms simulation engine
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import type { RoomTheme, SearchableItem } from '../types';
