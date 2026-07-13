@@ -1378,12 +1378,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       
       if (type === 'arrow') {
         ctx.save();
-        ctx.strokeStyle = Math.random() < 0.5 ? 'rgba(166, 25, 25, 0.75)' : 'rgba(25, 25, 25, 0.8)';
+        ctx.strokeStyle = 'rgba(15, 15, 15, 0.85)';
         ctx.lineWidth = 14;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        const randDir = Math.floor(Math.random() * 4);
+        const randDir = Math.random() < 0.5 ? 0 : 2; // Point Right (0) or Left (2)
         ctx.translate(128, 128);
         ctx.rotate(randDir * Math.PI / 2);
         
