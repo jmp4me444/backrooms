@@ -2776,7 +2776,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     camera.add(hammer);
     hammerRef.current = hammer;
 
-    const flashlight = new THREE.SpotLight(0xffffff, 12.0, 28, Math.PI / 5.2, 0.6, 2.0);
+    const isNeon = theme.lightingStyle === 'neon';
+    const isFlashlightOnly = theme.lightingStyle === 'flashlight-only';
+    const flashIntensity = isNeon ? 28.0 : isFlashlightOnly ? 20.0 : 15.0;
+    const flashDistance = isNeon ? 42.0 : 32.0;
+
+    const flashlight = new THREE.SpotLight(0xffffff, flashIntensity, flashDistance, Math.PI / 4.8, 0.6, 1.8);
     flashlight.castShadow = true;
     flashlight.shadow.mapSize.width = 1024;
     flashlight.shadow.mapSize.height = 1024;
