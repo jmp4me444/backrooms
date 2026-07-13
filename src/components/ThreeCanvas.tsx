@@ -1407,19 +1407,21 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.translate(128, 120);
         
         ctx.beginPath();
-        ctx.moveTo(-12, -75);
-        ctx.lineTo(12, -75);
-        ctx.lineTo(10, -60);
-        ctx.lineTo(-10, -60);
-        ctx.closePath();
+        ctx.moveTo(-10, -78);
+        ctx.quadraticCurveTo(-18, -72, -15, -60); // lumpy left side
+        ctx.quadraticCurveTo(-8, -52, 2, -54);   // misshapen chin
+        ctx.quadraticCurveTo(18, -56, 14, -68);   // lumpy right side
+        ctx.quadraticCurveTo(10, -82, -10, -78); // deformed top skull
         ctx.fillStyle = 'rgba(12, 10, 10, 0.88)';
         ctx.fill();
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.ellipse(0, -60, 22, 6, 0, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(12, 10, 10, 0.88)';
-        ctx.fill();
+        ctx.ellipse(-2, -66, 8, 5, 0.2, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.ellipse(3, -64, 6, 8, -0.15, 0, Math.PI * 2);
         ctx.stroke();
         
         ctx.beginPath();
