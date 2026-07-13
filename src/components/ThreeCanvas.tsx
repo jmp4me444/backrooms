@@ -4928,9 +4928,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      const px = Math.round(camera.position.x / CELL_SIZE);
-      const pz = Math.round(camera.position.z / CELL_SIZE);
-      const inGlitchedWall = px >= 0 && px < MAP_SIZE && pz >= 0 && pz < MAP_SIZE && grid[px]?.[pz] === 11;
+      const currentGridPx = Math.round(camera.position.x / CELL_SIZE);
+      const currentGridPz = Math.round(camera.position.z / CELL_SIZE);
+      const inGlitchedWall = currentGridPx >= 0 && currentGridPx < MAP_SIZE && currentGridPz >= 0 && currentGridPz < MAP_SIZE && grid[currentGridPx]?.[currentGridPz] === 11;
 
       const monsterInt = monsterDist < 18.0 ? Math.pow(Math.max(0, (18.0 - monsterDist) / 18.0), 1.8) : 0;
       const sparkInt = minSparkDist < 6.0 ? Math.pow(Math.max(0, (6.0 - minSparkDist) / 6.0), 1.5) * 0.35 : 0;
