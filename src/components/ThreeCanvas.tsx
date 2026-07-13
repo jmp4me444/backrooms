@@ -1284,21 +1284,19 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Clear glitched walls list
     glitchedWallsRef.current = [];
     
-    // Carve out a hidden secret chamber and glitched wall portal (Option 1)
-    let secretRoomFound = false;
-    let secretCx = -1;
-    let secretCz = -1;
-    let glitchWallX = -1;
-    let glitchWallZ = -1;
+    // Carve out hidden secret chambers and glitched wall portals (Option 1)
+    let secretRoomsCount = 0;
+    const maxSecretRooms = 3;
     
-    // Find a 3x3 cluster of solid walls/columns (excluding borders and lobby area)
+    // 1. First search for natural 3x3 clusters of walls
     for (let x = 4; x < MAP_SIZE - 2; x++) {
-      if (secretRoomFound) break;
+      if (secretRoomsCount >= maxSecretRooms) break;
       for (let z = 4; z < MAP_SIZE - 2; z++) {
         let isSolidCluster = true;
         for (let dx = -1; dx <= 1; dx++) {
           for (let dz = -1; dz <= 1; dz++) {
-            if (grid[x + dx][z + dz] === 0 || grid[x + dx][z + dz] === 3 || grid[x + dx][z + dz] === 4) {
+            const cell = grid[x + dx][z + dz];
+            if (cell === 0 || cell === 3 || cell === 4 || cell === 10 || cell === 11) {
               isSolidCluster = false;
               break;
             }
@@ -1315,11 +1313,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
           
           // Carve the center as secret chamber
-          grid[x][z] = 10; // 10 = secret chamber walkway
-          secretCx = x;
-          secretCz = z;
+          grid[x][z] = 10; // secret chamber walkway
           
-          // Pick one of the surrounding 4 wall blocks that borders a corridor (0)
+          // Pick one neighbor wall bordering a corridor (0)
           const neighbors = [
             { x: x - 1, z: z },
             { x: x + 1, z: z },
@@ -1327,7 +1323,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             { x: x, z: z + 1 }
           ];
           
-          // Look for a neighbor wall that also touches a regular corridor cell (0) in the outer maze
           for (const n of neighbors) {
             const checkDirs = [
               { dx: -1, dz: 0 },
@@ -1347,10 +1342,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               }
             }
             if (touchesCorridor) {
-              grid[n.x][n.z] = 11; // 11 = Glitched No-Clip Wall block!
-              glitchWallX = n.x;
-              glitchWallZ = n.z;
-              secretRoomFound = true;
+              grid[n.x][n.z] = 11; // Glitched No-Clip Wall block
+              secretRoomsCount++;
               break;
             }
           }
@@ -1358,35 +1351,47 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
     }
     
-    // Fallback: search for any wall block (1 or 2) that borders an open corridor (0)
-    if (!secretRoomFound) {
+    // 2. Fallback finder: search for existing walls bordering corridors to place more portals/chambers
+    if (secretRoomsCount < maxSecretRooms) {
       for (let x = 3; x < MAP_SIZE - 3; x++) {
-        if (secretRoomFound) break;
+        if (secretRoomsCount >= maxSecretRooms) break;
         for (let z = 3; z < MAP_SIZE - 3; z++) {
-          // If this is a wall block and borders a walkway to the West (x-1) and a wall to the East (x+1)
           if ((grid[x][z] === 1 || grid[x][z] === 2) && grid[x - 1][z] === 0 && (grid[x + 1][z] === 1 || grid[x + 1][z] === 2)) {
             const rx = x + 1;
             const rz = z;
-            for (let dx = -1; dx <= 1; dx++) {
-              for (let dz = -1; dz <= 1; dz++) {
-                grid[rx + dx][rz + dz] = 1;
+            
+            // Check for overlaps with existing secret rooms
+            let overlaps = false;
+            for (let dx = -2; dx <= 2; dx++) {
+              for (let dz = -2; dz <= 2; dz++) {
+                if (rx + dx >= 0 && rx + dx < MAP_SIZE && rz + dz >= 0 && rz + dz < MAP_SIZE) {
+                  const cell = grid[rx + dx][rz + dz];
+                  if (cell === 10 || cell === 11) {
+                    overlaps = true;
+                    break;
+                  }
+                }
               }
+              if (overlaps) break;
             }
-            grid[x][z] = 11; // Glitched No-Clip Wall
-            grid[rx][rz] = 10; // Secret chamber walkway
-            secretCx = rx;
-            secretCz = rz;
-            glitchWallX = x;
-            glitchWallZ = z;
-            secretRoomFound = true;
-            break;
+            
+            if (!overlaps) {
+              for (let dx = -1; dx <= 1; dx++) {
+                for (let dz = -1; dz <= 1; dz++) {
+                  grid[rx + dx][rz + dz] = 1;
+                }
+              }
+              grid[x][z] = 11; // Glitched No-Clip Wall
+              grid[rx][rz] = 10; // Secret chamber walkway
+              secretRoomsCount++;
+            }
           }
         }
       }
     }
     
-    // Absolute Fallback: if even that search failed, force carve one at [7,7] and guarantee corridor access!
-    if (!secretRoomFound) {
+    // 3. Absolute Fallback: if not even one room could be generated, guarantee at least one at [7,7]
+    if (secretRoomsCount === 0) {
       for (let dx = -1; dx <= 1; dx++) {
         for (let dz = -1; dz <= 1; dz++) {
           grid[7 + dx][7 + dz] = 1;
@@ -1394,11 +1399,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
       grid[7][7] = 10;
       grid[6][7] = 11;
-      grid[5][7] = 0; // force clear the access path in front of the glitched wall!
-      secretCx = 7;
-      secretCz = 7;
-      glitchWallX = 6;
-      glitchWallZ = 7;
+      grid[5][7] = 0; // force clear access in front of the glitched wall
+      secretRoomsCount = 1;
     }
 
     // Place Doors (3) randomly in open corridors (walkways grid === 0)
