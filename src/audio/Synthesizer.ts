@@ -646,9 +646,117 @@ class SoundSynthesizer {
     glitchOsc.stop(now + 0.6);
   }
 
-  // Synthesize a terrifying, lo-fi high-pitch screeching/screaming sound effect
+  // Synthesize a terrifying, lo-fi high-pitch screeching/screaming sound effect (Kane Pixels original Found Footage bacteria yell)
   triggerEntityScreech() {
-    // No-op (screeching sound removed at user request)
+    if (!this.audioCtx || !this.masterGain) return;
+    
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+    
+    // Create a distortion node for that harsh digital camcorder mic clipping
+    const distortion = ctx.createWaveShaper();
+    const makeDistortionCurve = (amount = 50) => {
+      const k = typeof amount === 'number' ? amount : 50;
+      const n_samples = 44100;
+      const curve = new Float32Array(n_samples);
+      const deg = Math.PI / 180;
+      for (let i = 0; i < n_samples; ++i) {
+        const x = (i * 2) / n_samples - 1;
+        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+      }
+      return curve;
+    };
+    distortion.curve = makeDistortionCurve(65);
+    distortion.oversample = '4x';
+    
+    // Create a feedback delay line to simulate the vast, empty, hollow corridors
+    const delay = ctx.createDelay(2.0);
+    delay.delayTime.setValueAtTime(0.18, now); // 180ms delay
+    
+    const delayGain = ctx.createGain();
+    delayGain.gain.setValueAtTime(0.45, now); // feedback level
+    
+    // Connect feedback loop
+    delay.connect(delayGain);
+    delayGain.connect(delay);
+    
+    // Main filter for hollow, metallic resonant sound (Formants)
+    const voiceFilter = ctx.createBiquadFilter();
+    voiceFilter.type = 'bandpass';
+    voiceFilter.Q.setValueAtTime(4.5, now);
+    voiceFilter.frequency.setValueAtTime(650, now);
+    // Sweep the voice filter frequency up and down like a human/monster throat yell
+    voiceFilter.frequency.exponentialRampToValueAtTime(1400, now + 0.35);
+    voiceFilter.frequency.exponentialRampToValueAtTime(320, now + 1.25);
+    
+    // Secondary filter for high-pitched metal resonance
+    const metalFilter = ctx.createBiquadFilter();
+    metalFilter.type = 'peaking';
+    metalFilter.Q.setValueAtTime(8.0, now);
+    metalFilter.frequency.setValueAtTime(2600, now);
+    metalFilter.gain.setValueAtTime(15, now);
+    
+    // Master scream gain node
+    const screamGain = ctx.createGain();
+    screamGain.gain.setValueAtTime(0.85 * this.volumeLevel, now);
+    screamGain.gain.exponentialRampToValueAtTime(0.85 * this.volumeLevel, now + 0.4);
+    screamGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+    
+    // Oscillator 1: Sawtooth wave for the primary raw vocal roar
+    const osc1 = ctx.createOscillator();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(120, now);
+    // Pitch sweeps (slight rise then long slide down)
+    osc1.frequency.linearRampToValueAtTime(380, now + 0.25);
+    osc1.frequency.exponentialRampToValueAtTime(75, now + 1.3);
+    
+    // Oscillator 2: Square wave for harsh hollow sub-harmonics
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(120.5, now); // detuned
+    osc2.frequency.linearRampToValueAtTime(375, now + 0.25);
+    osc2.frequency.exponentialRampToValueAtTime(73, now + 1.3);
+    
+    // Oscillator 3: Triangle wave at high pitch for the screeching overlay
+    const osc3 = ctx.createOscillator();
+    osc3.type = 'sawtooth';
+    osc3.frequency.setValueAtTime(880, now);
+    osc3.frequency.linearRampToValueAtTime(1600, now + 0.35);
+    osc3.frequency.exponentialRampToValueAtTime(440, now + 1.2);
+    
+    const osc3Gain = ctx.createGain();
+    osc3Gain.gain.setValueAtTime(0.35, now);
+    osc3Gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.1);
+    
+    // Connect oscillators
+    osc1.connect(voiceFilter);
+    osc2.connect(voiceFilter);
+    
+    osc3.connect(osc3Gain);
+    osc3Gain.connect(metalFilter);
+    
+    voiceFilter.connect(distortion);
+    metalFilter.connect(distortion);
+    
+    distortion.connect(screamGain);
+    
+    // Route dry to master AND wet to delay for echoes
+    screamGain.connect(this.masterGain);
+    screamGain.connect(delay);
+    
+    // Connect delay output to master
+    delay.connect(this.masterGain);
+    
+    // Start nodes
+    osc1.start(now);
+    osc2.start(now);
+    osc3.start(now);
+    
+    osc1.stop(now + 1.5);
+    osc2.stop(now + 1.5);
+    osc3.stop(now + 1.5);
+    
+    this.activeNodes.push(osc1, osc2, osc3, voiceFilter, metalFilter, delay, delayGain, distortion, screamGain);
   }
 
   // Helper to create a noise buffer for crash texture
