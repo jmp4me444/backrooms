@@ -81,8 +81,23 @@ class SoundSynthesizer {
     });
     this.activeNodes = [];
     
+    this.humOscillators.forEach(osc => {
+      try {
+        osc.stop?.();
+      } catch (e) {}
+      try {
+        osc.disconnect();
+      } catch (e) {}
+    });
     this.humOscillators = [];
-    this.humGain = null;
+    
+    if (this.humGain) {
+      try {
+        this.humGain.disconnect();
+      } catch (e) {}
+      this.humGain = null;
+    }
+    
     this.noiseGain = null;
 
     this.currentSoundType = 'none';
@@ -115,9 +130,10 @@ class SoundSynthesizer {
       this.createTvStatic(ctx);
     } else if (type === 'waves') {
       this.createOceanWaves(ctx);
-    } else {
-      this.createFluorescentHum(ctx);
     }
+
+    // Play the fluorescent hum globally under all themes
+    this.createFluorescentHum(ctx);
   }
 
   private createFluorescentHum(ctx: AudioContext) {
