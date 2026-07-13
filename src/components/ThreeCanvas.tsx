@@ -1407,21 +1407,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.translate(128, 120);
         
         ctx.beginPath();
-        ctx.moveTo(-10, -78);
-        ctx.quadraticCurveTo(-18, -72, -15, -60); // lumpy left side
-        ctx.quadraticCurveTo(-8, -52, 2, -54);   // misshapen chin
-        ctx.quadraticCurveTo(18, -56, 14, -68);   // lumpy right side
-        ctx.quadraticCurveTo(10, -82, -10, -78); // deformed top skull
+        ctx.moveTo(-15, -76);
+        ctx.lineTo(15, -76); // top edge of box
+        ctx.quadraticCurveTo(18, -76, 18, -73);
+        ctx.lineTo(16, -55); // right edge of box
+        ctx.quadraticCurveTo(15, -52, 12, -52);
+        ctx.lineTo(-12, -52); // bottom edge
+        ctx.quadraticCurveTo(-15, -52, -15, -55);
+        ctx.lineTo(-17, -73); // left edge
+        ctx.quadraticCurveTo(-17, -76, -15, -76);
+        ctx.closePath();
         ctx.fillStyle = 'rgba(12, 10, 10, 0.88)';
         ctx.fill();
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.ellipse(-2, -66, 8, 5, 0.2, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.strokeRect(-8, -70, 16, 12);
         
         ctx.beginPath();
-        ctx.ellipse(3, -64, 6, 8, -0.15, 0, Math.PI * 2);
+        ctx.ellipse(0, -64, 8, 4, 0.1, 0, Math.PI * 2);
         ctx.stroke();
         
         ctx.beginPath();
@@ -1441,26 +1445,26 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         
         ctx.beginPath();
         ctx.moveTo(-12, -45);
-        ctx.lineTo(-35, -20);
-        ctx.lineTo(-65, 85);
+        ctx.lineTo(-42, -15);
+        ctx.lineTo(-78, 108);
         ctx.stroke();
         
         ctx.beginPath();
         ctx.moveTo(12, -45);
-        ctx.lineTo(28, -25);
-        ctx.lineTo(24, 25);
+        ctx.lineTo(34, -20);
+        ctx.lineTo(28, 55);
         ctx.stroke();
         
         ctx.beginPath();
         ctx.moveTo(-8, 30);
-        ctx.lineTo(-24, 55);
-        ctx.lineTo(-24, 85);
+        ctx.lineTo(-28, 68);
+        ctx.lineTo(-28, 108);
         ctx.stroke();
         
         ctx.beginPath();
         ctx.moveTo(8, 30);
-        ctx.lineTo(20, 50);
-        ctx.lineTo(16, 85);
+        ctx.lineTo(24, 65);
+        ctx.lineTo(18, 108);
         ctx.stroke();
         
         ctx.restore();
