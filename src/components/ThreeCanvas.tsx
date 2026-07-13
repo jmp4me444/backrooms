@@ -1361,6 +1361,126 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       emissiveIntensity: theme.ceilingTexture === 'cyber' ? 0.35 : 0.0,
     });
 
+    // Cloned canvases for wall graffiti (directional arrows & monster imprints)
+    const createWallDecalTexture = (type: 'arrow' | 'imprint') => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d')!;
+      
+      const baseCanvas = wallMaps.map.image as HTMLCanvasElement;
+      if (baseCanvas) {
+        ctx.drawImage(baseCanvas, 0, 0);
+      } else {
+        ctx.fillStyle = theme.wallColor;
+        ctx.fillRect(0, 0, 256, 256);
+      }
+      
+      if (type === 'arrow') {
+        ctx.save();
+        ctx.strokeStyle = Math.random() < 0.5 ? 'rgba(166, 25, 25, 0.75)' : 'rgba(25, 25, 25, 0.8)';
+        ctx.lineWidth = 14;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        const randDir = Math.floor(Math.random() * 4);
+        ctx.translate(128, 128);
+        ctx.rotate(randDir * Math.PI / 2);
+        
+        ctx.beginPath();
+        ctx.moveTo(-60, 0);
+        ctx.lineTo(60, 0);
+        ctx.moveTo(25, -35);
+        ctx.lineTo(60, 0);
+        ctx.lineTo(25, 35);
+        ctx.stroke();
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(10, 10, 10, 0.85)';
+        ctx.lineWidth = 5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        
+        ctx.translate(128, 128);
+        ctx.scale(1.2 + Math.random() * 0.4, 1.2 + Math.random() * 0.4);
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -60);
+        ctx.lineTo(0, 10);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(0, -35, 18, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(0, -10, 15, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(-15, -45);
+        ctx.lineTo(-45, -60);
+        ctx.lineTo(-70, -30);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(15, -45);
+        ctx.lineTo(45, -30);
+        ctx.lineTo(65, -65);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(-10, 10);
+        ctx.lineTo(-30, 45);
+        ctx.lineTo(-45, 80);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(10, 10);
+        ctx.lineTo(30, 45);
+        ctx.lineTo(50, 75);
+        ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.arc(0, -75, 12, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+      
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    };
+
+    const arrowTex = createWallDecalTexture('arrow');
+    const imprintTex = createWallDecalTexture('imprint');
+
+    const wallMatArrow = new THREE.MeshStandardMaterial({
+      map: arrowTex,
+      normalMap: wallMaps.normalMap,
+      normalScale: new THREE.Vector2(0.35, 0.35),
+      roughnessMap: wallMaps.roughnessMap,
+      roughness: 0.35,
+      metalness: theme.wallTexture === 'metal' ? 0.85 : 0.15,
+      emissiveMap: theme.wallTexture === 'cyber' ? arrowTex : undefined,
+      emissive: theme.wallTexture === 'cyber' ? new THREE.Color(0x6a0dad) : new THREE.Color(0x000000),
+      emissiveIntensity: theme.wallTexture === 'cyber' ? 0.35 : 0.0,
+    });
+    
+    const wallMatImprint = new THREE.MeshStandardMaterial({
+      map: imprintTex,
+      normalMap: wallMaps.normalMap,
+      normalScale: new THREE.Vector2(0.35, 0.35),
+      roughnessMap: wallMaps.roughnessMap,
+      roughness: 0.35,
+      metalness: theme.wallTexture === 'metal' ? 0.85 : 0.15,
+      emissiveMap: theme.wallTexture === 'cyber' ? imprintTex : undefined,
+      emissive: theme.wallTexture === 'cyber' ? new THREE.Color(0x6a0dad) : new THREE.Color(0x000000),
+      emissiveIntensity: theme.wallTexture === 'cyber' ? 0.35 : 0.0,
+    });
+
     // 4. Construct Room Geometries
     const wallGeo = new THREE.BoxGeometry(CELL_SIZE, 3.5, CELL_SIZE);
     
@@ -1562,8 +1682,21 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const posZ = z * CELL_SIZE;
 
         if (grid[x][z] === 1) {
-          // Wall cube
-          const mesh = new THREE.Mesh(wallGeo, wallMat);
+          // Wall cube - select face materials dynamically to add decals randomly on visible corridor faces
+          const faceMaterials = [wallMat, wallMat, wallMat, wallMat, wallMat, wallMat];
+          const decalSeed = Math.abs(Math.sin(x * 12.56 + z * 88.19) * 1000);
+          const decalRand = decalSeed % 1;
+          
+          if (decalRand < 0.12) { // 12% chance for some decal on this wall cell
+            const pickDecalMat = (decalRand < 0.07) ? wallMatArrow : wallMatImprint;
+            
+            if (isWalkable(x + 1, z)) faceMaterials[0] = pickDecalMat; // East
+            else if (isWalkable(x - 1, z)) faceMaterials[1] = pickDecalMat; // West
+            else if (isWalkable(x, z + 1)) faceMaterials[4] = pickDecalMat; // South
+            else if (isWalkable(x, z - 1)) faceMaterials[5] = pickDecalMat; // North
+          }
+
+          const mesh = new THREE.Mesh(wallGeo, faceMaterials);
           mesh.position.set(posX, 3.5 / 2, posZ);
           mesh.castShadow = true;
           mesh.receiveShadow = true;
