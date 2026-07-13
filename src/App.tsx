@@ -337,6 +337,22 @@ export default function App() {
           <div className="absolute inset-0 bg-scanlines opacity-[0.25]" />
           <div className="absolute inset-0 bg-flicker pointer-events-none" />
         </div>
+        <div 
+          id="vhs-static-bars"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 4,
+            opacity: 0,
+            transition: 'opacity 0.05s ease',
+            overflow: 'hidden',
+          }}
+        >
+          <div className="vhs-tracking-bar" />
+          <div className="vhs-tracking-bar-thick" />
+          <div className="vhs-glitch-line" />
+        </div>
       </div>
 
       {/* Floating Header Controls (Left) */}

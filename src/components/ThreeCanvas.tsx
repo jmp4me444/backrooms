@@ -4753,13 +4753,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       const glitchOverlay = document.getElementById('vhs-glitch-overlay');
       const noiseOverlay = document.getElementById('vhs-noise-overlay');
       const scanlinesOverlay = document.getElementById('vhs-scanlines-overlay');
+      const staticBarsOverlay = document.getElementById('vhs-static-bars');
       const canvasElement = renderer.domElement;
       
-      if (glitchOverlay && noiseOverlay && scanlinesOverlay && canvasElement) {
+      if (glitchOverlay && noiseOverlay && scanlinesOverlay && staticBarsOverlay && canvasElement) {
         if (totalEMF > 0.05) {
           glitchOverlay.style.opacity = (totalEMF * 0.45).toString();
           noiseOverlay.style.opacity = (totalEMF * 0.35).toString();
           scanlinesOverlay.style.opacity = (0.2 + totalEMF * 0.6).toString();
+          staticBarsOverlay.style.opacity = (totalEMF * 0.85).toString();
           
           const jitterX = (Math.random() - 0.5) * totalEMF * 14.0;
           const jitterY = (Math.random() - 0.5) * totalEMF * 8.0;
@@ -4774,6 +4776,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           glitchOverlay.style.opacity = '0';
           noiseOverlay.style.opacity = '0';
           scanlinesOverlay.style.opacity = '0';
+          staticBarsOverlay.style.opacity = '0';
           canvasElement.style.transform = '';
           canvasElement.style.filter = '';
         }
