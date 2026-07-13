@@ -42,6 +42,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const [hudMessage, setHudMessage] = useState<string>('USE WASD / ARROWS TO MOVE. DRAG TO LOOK.');
   const [activeItemNear, setActiveItemNear] = useState<SearchableItem | null>(null);
   const [activeDoorNear, setActiveDoorNear] = useState<any | null>(null);
+  const [activeCassetteNear, setActiveCassetteNear] = useState<any | null>(null);
   const [flashlightOn, setFlashlightOn] = useState<boolean>(true);
   const [noclipMode, setNoclipMode] = useState<boolean>(false);
   const noclipRef = useRef<boolean>(noclipMode);
@@ -83,6 +84,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const waterCellsRef = useRef<Set<string>>(new Set());
   const fountainsRef = useRef<{ mesh: THREE.Group; particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; oy: number }[] }[]>([]);
   const steamParticlesRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; life: number; maxLife: number; ox: number; oy: number; oz: number }[]>([]);
+  const cassettesRef = useRef<{ mesh: THREE.Group; played: boolean; logIndex: number }[]>([]);
+  const sparkEmittersRef = useRef<THREE.Vector3[]>([]);
+  const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
 
   // Map dimensions
   const MAP_SIZE = 14;
@@ -923,6 +927,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         // play a small trigger sound
         Synthesizer.triggerEntityGlitch();
       }
+
+      // Trigger Cassette Tape Play (E)
+      if (k === 'e' && activeCassetteNear) {
+        activeCassetteNear.played = true;
+        const logIdx = activeCassetteNear.logIndex;
+        Synthesizer.triggerTapeAudioLog(logIdx);
+        
+        const subtitles = [
+          "VOICE DIARY: \"...H-e-l-p... t-h-e-y... a-r-e... h-e-r-e...\"",
+          "VOICE DIARY: \"...D-o... n-o-t... t-r-u-s-t... t-h-e... w-a-l-l-s...\"",
+          "VOICE DIARY: \"...W-h-e-r-e... i-s... t-h-e... e-x-i-t...\"",
+          "VOICE DIARY: \"...I-t... i-s... l-o-o-k-i-n-g... a-t... m-e...\""
+        ];
+        const sub = subtitles[logIdx % subtitles.length];
+        setHudMessage(sub);
+        setTimeout(() => {
+          setHudMessage('USE WASD / ARROWS TO MOVE. DRAG TO LOOK.');
+        }, 3500);
+      }
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -935,7 +958,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [activeItemNear, activeDoorNear, onItemFound]);
+  }, [activeItemNear, activeDoorNear, activeCassetteNear, onItemFound]);
 
   // Drag to Look Controls
   useEffect(() => {
@@ -1536,6 +1559,73 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           mazeGroup.add(mesh);
+
+          // Exposed Wires spawning check (8% chance per wall cell bordering corridor)
+          const spawnWires = Math.abs(Math.sin(x * 77.21 + z * 33.49) * 100) % 1 < 0.08;
+          if (spawnWires) {
+            let wireDir: 'S' | 'N' | 'E' | 'W' | null = null;
+            if (isWalkable(x, z + 1)) wireDir = 'S';
+            else if (isWalkable(x, z - 1)) wireDir = 'N';
+            else if (isWalkable(x + 1, z)) wireDir = 'E';
+            else if (isWalkable(x - 1, z)) wireDir = 'W';
+
+            if (wireDir) {
+              const wireGroup = new THREE.Group();
+              
+              const boxGeo = new THREE.BoxGeometry(0.35, 0.55, 0.04);
+              const boxMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.3 });
+              const wBox = new THREE.Mesh(boxGeo, boxMat);
+              wBox.castShadow = true; wBox.receiveShadow = true;
+              wireGroup.add(wBox);
+
+              const wRed = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.008, 0.008, 0.4),
+                new THREE.MeshStandardMaterial({ color: 0xd32f2f, roughness: 0.6 })
+              );
+              wRed.position.set(-0.06, -0.05, 0.015);
+              wRed.rotation.z = -0.15;
+              wireGroup.add(wRed);
+
+              const wBlue = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.008, 0.008, 0.4),
+                new THREE.MeshStandardMaterial({ color: 0x1976d2, roughness: 0.6 })
+              );
+              wBlue.position.set(0.06, -0.05, 0.015);
+              wBlue.rotation.z = 0.15;
+              wireGroup.add(wBlue);
+
+              const wCopper = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.008, 0.008, 0.3),
+                new THREE.MeshStandardMaterial({ color: 0xf57c00, roughness: 0.6 })
+              );
+              wCopper.position.set(0, -0.08, 0.018);
+              wCopper.rotation.x = 0.12;
+              wireGroup.add(wCopper);
+
+              let wx = posX;
+              let wz = posZ;
+              let ry = 0;
+              if (wireDir === 'S') {
+                wz = posZ + CELL_SIZE / 2 + 0.021;
+                ry = 0;
+              } else if (wireDir === 'N') {
+                wz = posZ - CELL_SIZE / 2 - 0.021;
+                ry = Math.PI;
+              } else if (wireDir === 'E') {
+                wx = posX + CELL_SIZE / 2 + 0.021;
+                ry = -Math.PI / 2;
+              } else if (wireDir === 'W') {
+                wx = posX - CELL_SIZE / 2 - 0.021;
+                ry = Math.PI / 2;
+              }
+
+              wireGroup.position.set(wx, 1.45, wz);
+              wireGroup.rotation.y = ry;
+              mazeGroup.add(wireGroup);
+
+              sparkEmittersRef.current.push(new THREE.Vector3(wx, 1.45, wz));
+            }
+          }
 
           // Spawn baseboards on visible faces
           if (isWalkable(x, z + 1)) {
@@ -2290,6 +2380,43 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                     deskGroup.add(compGroup);
                   }
 
+                  // 35% chance to spawn cassette recorder on desk top
+                  const spawnCassette = Math.abs(Math.sin(x * 12.34 + z * 98.76) * 100) % 1 < 0.35;
+                  if (spawnCassette) {
+                    const cassetteGroup = new THREE.Group();
+                    const cBaseMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.5 });
+                    const cGlassMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, transparent: true, opacity: 0.7 });
+                    const cRedMat = new THREE.MeshStandardMaterial({ color: 0xc62828, roughness: 0.6 });
+
+                    const cBody = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.12), cBaseMat);
+                    cBody.position.y = 0.025;
+                    cBody.castShadow = true; cBody.receiveShadow = true;
+                    cassetteGroup.add(cBody);
+
+                    const cWindow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.002, 0.04), cGlassMat);
+                    cWindow.position.set(-0.02, 0.051, 0);
+                    cWindow.castShadow = true; cWindow.receiveShadow = true;
+                    cassetteGroup.add(cWindow);
+
+                    const cRecBtn = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.01, 0.02), cRedMat);
+                    cRecBtn.position.set(0.06, 0.051, 0.03);
+                    cRecBtn.castShadow = true; cRecBtn.receiveShadow = true;
+                    cassetteGroup.add(cRecBtn);
+
+                    // Place on left side of the desk
+                    cassetteGroup.position.set(-0.35, 0.70, -0.15);
+                    cassetteGroup.rotation.y = Math.PI / 6;
+                    
+                    deskGroup.add(cassetteGroup);
+
+                    // Track it
+                    cassettesRef.current.push({
+                      mesh: cassetteGroup,
+                      played: false,
+                      logIndex: Math.floor(Math.abs(Math.sin(x * 45.67 + z * 89.12) * 100)) % 4
+                    });
+                  }
+
                   // Apply glitch positions
                   if (isFloorGlitched) {
                     deskGroup.position.y = -0.32;
@@ -2531,6 +2658,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       theme.lightingStyle === 'sunlight' ? 0.95 : 1.0
     );
     scene.add(ambientLight);
+    ambientLightRef.current = ambientLight;
 
     // Directional subtle fog glow or bright sunlight
     let sunLight: THREE.DirectionalLight;
@@ -2648,6 +2776,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // 7. Spawn Theme Specific Props (Pipes, Cabinets, Lockers, Water puddles)
     const spawnProps = () => {
       breakablesRef.current = [];
+      cassettesRef.current = [];
+      sparkEmittersRef.current = [];
       const metalMaterial = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.8, roughness: 0.3 });
       
       if (theme.props.includes('pipe')) {
@@ -3999,6 +4129,19 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
+      // Cassette proximity detection
+      let nearestCassette = null;
+      let minCassetteDist = 2.0;
+      for (let c of cassettesRef.current) {
+        const cPos = new THREE.Vector3();
+        c.mesh.getWorldPosition(cPos);
+        const dist = camera.position.distanceTo(cPos);
+        if (dist < minCassetteDist) {
+          minCassetteDist = dist;
+          nearestCassette = c;
+        }
+      }
+
       // Update item state
       if (nearestItem !== activeItemNear) {
         setActiveItemNear(nearestItem);
@@ -4009,9 +4152,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         setActiveDoorNear(nearestDoor);
       }
 
+      // Update cassette state
+      if (nearestCassette !== activeCassetteNear) {
+        setActiveCassetteNear(nearestCassette);
+      }
+
       // Coordinate HUD Messages
       if (nearestItem) {
         setHudMessage(`PROXIMITY DETECTED: [${nearestItem.name.toUpperCase()}] - PRESS [E] OR CLICK TO SEARCH`);
+      } else if (nearestCassette) {
+        setHudMessage(nearestCassette.played ? 'PROXIMITY: [CASSETTE DIARY] - PRESS [E] TO REPLAY AUDIO LOG' : 'PROXIMITY: [CASSETTE DIARY] - PRESS [E] TO PLAY AUDIO LOG');
       } else if (nearestDoor) {
         setHudMessage(`PROXIMITY DETECTED: [WOODEN DOOR] - PRESS [E] OR CLICK TO SWING ${nearestDoor.isOpen ? 'CLOSE' : 'OPEN'}`);
       } else if (nearestStairs) {
@@ -4030,6 +4180,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           // Decrement cooldown
           uData.appearCooldown -= delta;
           setEntityDistance(999.0); // Reset warning overlay when hidden
+
+          if (ambientLightRef.current) {
+            const themeColor = theme.lightingStyle === 'matrix' ? new THREE.Color(0x3ca649) :
+                               theme.lightingStyle === 'sunlight' ? new THREE.Color(0xdcf0fa) :
+                               theme.lightingStyle === 'red-alarm' ? new THREE.Color(0x886e68) :
+                               theme.lightingStyle === 'flashlight-only' ? new THREE.Color(0x111111) : new THREE.Color(0x666666);
+            ambientLightRef.current.color.copy(themeColor);
+          }
+          Synthesizer.stopSiren();
 
           if (uData.appearCooldown <= 0) {
             // Find a walkable corridor cell with straight line of sight to spawn the monster
@@ -4086,6 +4245,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               uData.isChasing = true;
               uData.chaseTimer = 11.0 + Math.random() * 4.0; // chases for 11-15 seconds
               Synthesizer.triggerEntityScreech();
+              Synthesizer.startSiren();
             } else {
               // Retry in a few seconds if no grid cell fits
               uData.appearCooldown = 3.0;
@@ -4096,6 +4256,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           uData.chaseTimer -= delta;
           const distToPlayer = new THREE.Vector3(camera.position.x, 0, camera.position.z).distanceTo(entPos);
           setEntityDistance(distToPlayer);
+
+          // Red Alert pulsing lighting
+          if (ambientLightRef.current) {
+            const pulse = 0.4 + Math.sin(elapsedTime * 6) * 0.4;
+            const themeColor = theme.lightingStyle === 'matrix' ? new THREE.Color(0x3ca649) :
+                               theme.lightingStyle === 'sunlight' ? new THREE.Color(0xdcf0fa) :
+                               theme.lightingStyle === 'red-alarm' ? new THREE.Color(0x886e68) :
+                               theme.lightingStyle === 'flashlight-only' ? new THREE.Color(0x111111) : new THREE.Color(0x666666);
+            const alertColor = new THREE.Color(0x990000).lerp(new THREE.Color(0xff1111), pulse);
+            ambientLightRef.current.color.copy(themeColor).lerp(alertColor, 0.85);
+          }
 
           // Safe Zone: If player is climbing stairs, instantly dissolve the monster to prevent cheap transition deaths
           const checkPx = Math.round(camera.position.x / CELL_SIZE);
@@ -4110,6 +4281,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             uData.rightArm.rotation.set(0, 0, 0);
             uData.appearCooldown = 20.0 + Math.random() * 25.0;
             setEntityDistance(999.0);
+            Synthesizer.stopSiren();
           }
 
           // Make the entity face the player (billboard orientation)
@@ -4150,6 +4322,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           // Dissolve / vanish when the timer expires.
           if (uData.chaseTimer <= 0) {
             Synthesizer.triggerEntityGlitch();
+            Synthesizer.stopSiren();
             
             // Creepy dissolve transition: set invisible, reset states
             ent.visible = false;
@@ -4327,6 +4500,39 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
         }
       });
+
+      // E. Update Exposed Wires Spark Emitters
+      for (const emitterPos of sparkEmittersRef.current) {
+        const distToEmitter = camera.position.distanceTo(emitterPos);
+        if (distToEmitter < 6.0) {
+          if (Math.random() > 0.988) {
+            Synthesizer.triggerLightCrackle(0.55);
+            
+            const sparkGeo = new THREE.BoxGeometry(0.018, 0.018, 0.018);
+            const sparkMat = new THREE.MeshBasicMaterial({ color: 0xffaa00, toneMapped: false });
+            const count = 3 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < count; i++) {
+              const spark = new THREE.Mesh(sparkGeo, sparkMat);
+              spark.position.copy(emitterPos);
+              
+              const angle = Math.random() * Math.PI * 2;
+              const spread = 1.2 + Math.random() * 1.8;
+              const vx = Math.cos(angle) * spread;
+              const vy = 0.5 + Math.random() * 2.0;
+              const vz = Math.sin(angle) * spread;
+              
+              scene.add(spark);
+              debrisRef.current.push({
+                mesh: spark,
+                vx,
+                vy,
+                vz,
+                spawnTime: performance.now()
+              });
+            }
+          }
+        }
+      }
 
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);

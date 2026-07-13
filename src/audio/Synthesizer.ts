@@ -17,6 +17,11 @@ class SoundSynthesizer {
   private volumeLevel: number = 0.5;
   private flickerTimeout: number | null = null;
 
+  private sirenOsc: OscillatorNode | null = null;
+  private sirenOsc2: OscillatorNode | null = null;
+  private sirenGain: GainNode | null = null;
+  private sirenInterval: any = null;
+
   init() {
     if (this.audioCtx) return;
     
@@ -57,6 +62,7 @@ class SoundSynthesizer {
   }
 
   stopAll() {
+    this.stopSiren();
     this.intervals.forEach(clearInterval);
     this.intervals = [];
     
@@ -835,6 +841,224 @@ class SoundSynthesizer {
     gain.connect(this.masterGain);
     osc.start(now);
     osc.stop(now + 0.2);
+  }
+
+  // startSiren: Sweep-pitch looping alarm sirens during entity chases
+  startSiren() {
+    this.init();
+    this.resume();
+    if (!this.audioCtx || !this.masterGain || this.sirenOsc) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18 * this.volumeLevel, now + 0.5);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, now);
+
+    const osc2 = ctx.createOscillator();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(75, now);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(400, now);
+
+    osc.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc2.start(now);
+
+    this.sirenOsc = osc;
+    this.sirenOsc2 = osc2;
+    this.sirenGain = gain;
+
+    let time = 0;
+    this.sirenInterval = window.setInterval(() => {
+      if (!this.audioCtx || !this.sirenOsc) return;
+      const t = this.audioCtx.currentTime;
+      const freq = 170 + Math.sin(time * 4) * 50;
+      this.sirenOsc.frequency.setValueAtTime(freq, t);
+      time += 0.05;
+    }, 50);
+  }
+
+  // stopSiren: Fade out and stop the alarm sirens when a chase is over or player dies
+  stopSiren() {
+    if (this.sirenInterval) {
+      window.clearInterval(this.sirenInterval);
+      this.sirenInterval = null;
+    }
+    const ctx = this.audioCtx;
+    if (ctx && this.sirenGain) {
+      const now = ctx.currentTime;
+      try {
+        this.sirenGain.gain.setValueAtTime(this.sirenGain.gain.value, now);
+        this.sirenGain.gain.linearRampToValueAtTime(0, now + 0.5);
+      } catch(e){}
+    }
+    const osc = this.sirenOsc;
+    const osc2 = this.sirenOsc2;
+    const gain = this.sirenGain;
+    window.setTimeout(() => {
+      try { osc?.stop(); } catch(e){}
+      try { osc2?.stop(); } catch(e){}
+      try { osc?.disconnect(); } catch(e){}
+      try { osc2?.disconnect(); } catch(e){}
+      try { gain?.disconnect(); } catch(e){}
+    }, 600);
+
+    this.sirenOsc = null;
+    this.sirenOsc2 = null;
+    this.sirenGain = null;
+  }
+
+  // triggerTapeAudioLog: Synthesizes a garbled, analog-distorted cassette voice message
+  triggerTapeAudioLog(index: number) {
+    this.init();
+    this.resume();
+    if (!this.audioCtx || !this.masterGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+
+    const patterns = [
+      [
+        { time: 0.1, freq: 220, dur: 0.25, noise: 0.05 },
+        { time: 0.4, freq: 190, dur: 0.35, noise: 0.1 },
+        { time: 0.9, freq: 240, dur: 0.2, noise: 0.05 },
+        { time: 1.2, freq: 270, dur: 0.25, noise: 0.08 },
+        { time: 1.5, freq: 170, dur: 0.5, noise: 0.2 }
+      ],
+      [
+        { time: 0.1, freq: 300, dur: 0.2, noise: 0.08 },
+        { time: 0.35, freq: 280, dur: 0.2, noise: 0.05 },
+        { time: 0.6, freq: 320, dur: 0.3, noise: 0.12 },
+        { time: 1.0, freq: 250, dur: 0.25, noise: 0.05 },
+        { time: 1.3, freq: 220, dur: 0.2, noise: 0.1 },
+        { time: 1.6, freq: 180, dur: 0.65, noise: 0.25 }
+      ],
+      [
+        { time: 0.1, freq: 200, dur: 0.3, noise: 0.05 },
+        { time: 0.45, freq: 250, dur: 0.25, noise: 0.08 },
+        { time: 0.75, freq: 290, dur: 0.2, noise: 0.05 },
+        { time: 1.05, freq: 350, dur: 0.35, noise: 0.15 },
+        { time: 1.5, freq: 220, dur: 0.6, noise: 0.3 }
+      ],
+      [
+        { time: 0.1, freq: 270, dur: 0.22, noise: 0.05 },
+        { time: 0.38, freq: 270, dur: 0.22, noise: 0.05 },
+        { time: 0.65, freq: 310, dur: 0.3, noise: 0.1 },
+        { time: 1.0, freq: 240, dur: 0.25, noise: 0.08 },
+        { time: 1.3, freq: 280, dur: 0.28, noise: 0.12 },
+        { time: 1.65, freq: 160, dur: 0.7, noise: 0.35 }
+      ]
+    ];
+
+    const selected = patterns[index % patterns.length];
+
+    const clickOsc = ctx.createOscillator();
+    clickOsc.type = 'triangle';
+    clickOsc.frequency.setValueAtTime(60, now);
+    const clickGain = ctx.createGain();
+    clickGain.gain.setValueAtTime(0.25 * this.volumeLevel, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    clickOsc.connect(clickGain);
+    clickGain.connect(this.masterGain);
+    clickOsc.start(now);
+    clickOsc.stop(now + 0.1);
+
+    const humOsc = ctx.createOscillator();
+    humOsc.type = 'sine';
+    humOsc.frequency.setValueAtTime(55, now);
+    const humGainNode = ctx.createGain();
+    humGainNode.gain.setValueAtTime(0.06 * this.volumeLevel, now);
+    humGainNode.gain.setValueAtTime(0.06 * this.volumeLevel, now + 2.3);
+    humGainNode.gain.linearRampToValueAtTime(0.0, now + 2.5);
+    
+    const humFilter = ctx.createBiquadFilter();
+    humFilter.type = 'lowpass';
+    humFilter.frequency.setValueAtTime(120, now);
+
+    humOsc.connect(humFilter);
+    humFilter.connect(humGainNode);
+    humGainNode.connect(this.masterGain);
+    humOsc.start(now);
+    humOsc.stop(now + 2.6);
+
+    selected.forEach(note => {
+      const noteTime = now + note.time;
+      const noteDur = note.dur;
+
+      const osc1 = ctx.createOscillator();
+      osc1.type = 'sawtooth';
+      osc1.frequency.setValueAtTime(note.freq, noteTime);
+
+      const osc2 = ctx.createOscillator();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(note.freq * 1.5, noteTime);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(note.freq * 1.2, noteTime);
+      filter.Q.setValueAtTime(3.0, noteTime);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.0, noteTime);
+      gain.gain.linearRampToValueAtTime(0.12 * this.volumeLevel, noteTime + 0.02);
+      gain.gain.setValueAtTime(0.12 * this.volumeLevel, noteTime + noteDur - 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + noteDur);
+
+      osc1.connect(filter);
+      osc2.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc1.start(noteTime);
+      osc2.start(noteTime);
+      osc1.stop(noteTime + noteDur);
+      osc2.stop(noteTime + noteDur);
+
+      if (note.noise > 0) {
+        const noiseNode = ctx.createBufferSource();
+        noiseNode.buffer = this.getNoiseBuffer(ctx);
+
+        const noiseFilter = ctx.createBiquadFilter();
+        noiseFilter.type = 'bandpass';
+        noiseFilter.frequency.setValueAtTime(1000, noteTime);
+        noiseFilter.Q.setValueAtTime(2.0, noteTime);
+
+        const noiseGainNode = ctx.createGain();
+        noiseGainNode.gain.setValueAtTime(0.0, noteTime);
+        noiseGainNode.gain.linearRampToValueAtTime(note.noise * 0.18 * this.volumeLevel, noteTime + 0.02);
+        noiseGainNode.gain.setValueAtTime(note.noise * 0.18 * this.volumeLevel, noteTime + noteDur - 0.05);
+        noiseGainNode.gain.exponentialRampToValueAtTime(0.001, noteTime + noteDur);
+
+        noiseNode.connect(noiseFilter);
+        noiseFilter.connect(noiseGainNode);
+        noiseGainNode.connect(this.masterGain);
+
+        noiseNode.start(noteTime);
+        noiseNode.stop(noteTime + noteDur);
+      }
+    });
+
+    const endClickTime = now + 2.4;
+    const endClickOsc = ctx.createOscillator();
+    endClickOsc.type = 'triangle';
+    endClickOsc.frequency.setValueAtTime(80, endClickTime);
+    const endClickGain = ctx.createGain();
+    endClickGain.gain.setValueAtTime(0.2 * this.volumeLevel, endClickTime);
+    endClickGain.gain.exponentialRampToValueAtTime(0.001, endClickTime + 0.08);
+    endClickOsc.connect(endClickGain);
+    endClickGain.connect(this.masterGain);
+    endClickOsc.start(endClickTime);
+    endClickOsc.stop(endClickTime + 0.1);
   }
 }
 
