@@ -1397,54 +1397,70 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         ctx.restore();
       } else {
         ctx.save();
-        ctx.strokeStyle = 'rgba(10, 10, 10, 0.85)';
-        ctx.lineWidth = 5;
+        ctx.strokeStyle = 'rgba(12, 10, 10, 0.88)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = 5;
+        ctx.lineWidth = 6;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        ctx.translate(128, 128);
-        ctx.scale(1.2 + Math.random() * 0.4, 1.2 + Math.random() * 0.4);
+        ctx.translate(128, 120);
         
         ctx.beginPath();
-        ctx.moveTo(0, -60);
-        ctx.lineTo(0, 10);
+        ctx.moveTo(-12, -75);
+        ctx.lineTo(12, -75);
+        ctx.lineTo(10, -60);
+        ctx.lineTo(-10, -60);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(12, 10, 10, 0.88)';
+        ctx.fill();
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.arc(0, -35, 18, 0, Math.PI * 2);
+        ctx.ellipse(0, -60, 22, 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(12, 10, 10, 0.88)';
+        ctx.fill();
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.arc(0, -10, 15, 0, Math.PI * 2);
+        ctx.moveTo(0, -56);
+        ctx.lineTo(0, -48);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.moveTo(-15, -45);
-        ctx.lineTo(-45, -60);
-        ctx.lineTo(-70, -30);
+        ctx.moveTo(0, -48);
+        ctx.quadraticCurveTo(-8, -25, 0, -5);
+        ctx.quadraticCurveTo(8, 15, 0, 30);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.moveTo(15, -45);
-        ctx.lineTo(45, -30);
-        ctx.lineTo(65, -65);
+        ctx.ellipse(0, -15, 8, 16, 0.1, 0, Math.PI * 2);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.moveTo(-10, 10);
-        ctx.lineTo(-30, 45);
-        ctx.lineTo(-45, 80);
+        ctx.moveTo(-12, -45);
+        ctx.lineTo(-35, -20);
+        ctx.lineTo(-65, 85);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.moveTo(10, 10);
-        ctx.lineTo(30, 45);
-        ctx.lineTo(50, 75);
+        ctx.moveTo(12, -45);
+        ctx.lineTo(28, -25);
+        ctx.lineTo(24, 25);
         ctx.stroke();
         
         ctx.beginPath();
-        ctx.arc(0, -75, 12, 0, Math.PI * 2);
+        ctx.moveTo(-8, 30);
+        ctx.lineTo(-24, 55);
+        ctx.lineTo(-24, 85);
         ctx.stroke();
+        
+        ctx.beginPath();
+        ctx.moveTo(8, 30);
+        ctx.lineTo(20, 50);
+        ctx.lineTo(16, 85);
+        ctx.stroke();
+        
         ctx.restore();
       }
       
