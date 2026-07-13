@@ -74,6 +74,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const flashlightRef = useRef<THREE.SpotLight | null>(null);
   const itemsMeshesRef = useRef<{ [key: string]: THREE.Group }>({});
   const entityMeshRef = useRef<THREE.Group | null>(null);
+  const monsterCooldownRef = useRef<number | null>(null);
   
   const hammerRef = useRef<THREE.Group | null>(null);
   const isSwingingRef = useRef<boolean>(false);
@@ -254,6 +255,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       uData.rightArm.rotation.set(0, 0, 0);
 
       uData.appearCooldown = 30.0 + Math.random() * 30.0;
+      monsterCooldownRef.current = uData.appearCooldown;
       setEntityDistance(999.0);
     } else if (closestBreakable) {
       smashObject(closestBreakable);
@@ -3864,6 +3866,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       rightUpperArmGroup.add(rightForearmGroup);
       entityGroup.add(rightArmGroup);
 
+      // Determine initial spawn cooldown, carrying it over from the previous level transition
+      const initialCooldown = monsterCooldownRef.current !== null 
+        ? Math.min(22.0, monsterCooldownRef.current) 
+        : 45.0 + Math.random() * 15.0; // 45 to 60 seconds on absolute first level start
+
       // Store references in userData
       entityGroup.userData = {
         leftLeg: leftLegGroup,
@@ -3872,8 +3879,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         rightArm: rightArmGroup,
         isChasing: false,
         chaseTimer: 0,
-        appearCooldown: 60.0 + Math.random() * 25.0, // Wait at least 60 seconds (one minute) after level start
+        appearCooldown: initialCooldown,
       };
+      
+      monsterCooldownRef.current = initialCooldown;
 
       // Set initial position
       entityGroup.position.set((MAP_SIZE - 2) * CELL_SIZE, 0, (MAP_SIZE - 2) * CELL_SIZE);
@@ -4360,6 +4369,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (!uData.isChasing) {
           // Decrement cooldown
           uData.appearCooldown -= delta;
+          monsterCooldownRef.current = uData.appearCooldown;
           setEntityDistance(999.0); // Reset warning overlay when hidden
 
           if (ambientLightRef.current) {
@@ -4430,6 +4440,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             } else {
               // Retry in a few seconds if no grid cell fits
               uData.appearCooldown = 3.0;
+              monsterCooldownRef.current = uData.appearCooldown;
             }
           }
         } else {
@@ -4461,6 +4472,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             uData.leftArm.rotation.set(0, 0, 0);
             uData.rightArm.rotation.set(0, 0, 0);
             uData.appearCooldown = 20.0 + Math.random() * 25.0;
+            monsterCooldownRef.current = uData.appearCooldown;
             setEntityDistance(999.0);
             Synthesizer.stopSiren();
           }
@@ -4517,6 +4529,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
             // Set new cooldown before next appearance (20 to 45 seconds of suspense)
             uData.appearCooldown = 20.0 + Math.random() * 25.0;
+            monsterCooldownRef.current = uData.appearCooldown;
             setEntityDistance(999.0);
           }
         }
