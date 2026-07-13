@@ -1358,7 +1358,34 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
     }
     
-    // Fallback: if no natural cluster is found, force carve one at [7,7] and seal it
+    // Fallback: search for any wall block (1 or 2) that borders an open corridor (0)
+    if (!secretRoomFound) {
+      for (let x = 3; x < MAP_SIZE - 3; x++) {
+        if (secretRoomFound) break;
+        for (let z = 3; z < MAP_SIZE - 3; z++) {
+          // If this is a wall block and borders a walkway to the West (x-1) and a wall to the East (x+1)
+          if ((grid[x][z] === 1 || grid[x][z] === 2) && grid[x - 1][z] === 0 && (grid[x + 1][z] === 1 || grid[x + 1][z] === 2)) {
+            const rx = x + 1;
+            const rz = z;
+            for (let dx = -1; dx <= 1; dx++) {
+              for (let dz = -1; dz <= 1; dz++) {
+                grid[rx + dx][rz + dz] = 1;
+              }
+            }
+            grid[x][z] = 11; // Glitched No-Clip Wall
+            grid[rx][rz] = 10; // Secret chamber walkway
+            secretCx = rx;
+            secretCz = rz;
+            glitchWallX = x;
+            glitchWallZ = z;
+            secretRoomFound = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Absolute Fallback: if even that search failed, force carve one at [7,7] and guarantee corridor access!
     if (!secretRoomFound) {
       for (let dx = -1; dx <= 1; dx++) {
         for (let dz = -1; dz <= 1; dz++) {
@@ -1367,6 +1394,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
       grid[7][7] = 10;
       grid[6][7] = 11;
+      grid[5][7] = 0; // force clear the access path in front of the glitched wall!
       secretCx = 7;
       secretCz = 7;
       glitchWallX = 6;
