@@ -3868,7 +3868,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
       // Determine initial spawn cooldown, carrying it over from the previous level transition
       const initialCooldown = monsterCooldownRef.current !== null 
-        ? Math.min(22.0, monsterCooldownRef.current) 
+        ? monsterCooldownRef.current 
         : 45.0 + Math.random() * 15.0; // 45 to 60 seconds on absolute first level start
 
       // Store references in userData
@@ -4506,6 +4506,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
           // Touch player check: trigger death sequence when wire monster gets within 0.95 meters
           if (distToPlayer < 0.95) {
+            // Reset persistent spawn timer on player death to at least 30-45 seconds at next level spawn
+            monsterCooldownRef.current = 30.0 + Math.random() * 15.0;
             if (onPlayerDeath) {
               onPlayerDeath();
             }
