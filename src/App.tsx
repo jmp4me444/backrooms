@@ -295,6 +295,48 @@ export default function App() {
             onPlayerDeath={handlePlayerDeath}
           />
         )}
+        
+        {/* VHS Glitch & Noise Overlays */}
+        <div 
+          id="vhs-glitch-overlay"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'rgba(255, 0, 0, 0.15)',
+            mixBlendMode: 'difference',
+            pointerEvents: 'none',
+            zIndex: 1,
+            opacity: 0,
+            transition: 'opacity 0.05s ease',
+          }}
+        />
+        <div 
+          id="vhs-noise-overlay"
+          className="bg-vhs-static"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            mixBlendMode: 'screen',
+            pointerEvents: 'none',
+            zIndex: 2,
+            opacity: 0,
+            transition: 'opacity 0.05s ease',
+          }}
+        />
+        <div 
+          id="vhs-scanlines-overlay"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            zIndex: 3,
+            opacity: 0,
+            transition: 'opacity 0.05s ease',
+          }}
+        >
+          <div className="absolute inset-0 bg-scanlines opacity-[0.25]" />
+          <div className="absolute inset-0 bg-flicker pointer-events-none" />
+        </div>
       </div>
 
       {/* Floating Header Controls (Left) */}

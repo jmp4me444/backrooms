@@ -8,6 +8,8 @@ class SoundSynthesizer {
   private humGain: GainNode | null = null;
   
   private noiseGain: GainNode | null = null;
+  private emfSource: AudioBufferSourceNode | null = null;
+  private emfGain: GainNode | null = null;
 
 
   private delayNode: DelayNode | null = null;
@@ -99,6 +101,8 @@ class SoundSynthesizer {
     }
     
     this.noiseGain = null;
+    this.emfGain = null;
+    this.emfSource = null;
 
     this.currentSoundType = 'none';
   }
@@ -134,6 +138,37 @@ class SoundSynthesizer {
 
     // Play the fluorescent hum globally under all themes
     this.createFluorescentHum(ctx);
+    this.createEMFStatic(ctx);
+  }
+
+  private createEMFStatic(ctx: AudioContext) {
+    if (this.emfGain) return;
+    
+    this.emfGain = ctx.createGain();
+    this.emfGain.gain.setValueAtTime(0, ctx.currentTime);
+    this.emfGain.connect(this.masterGain!);
+    
+    const noiseBuffer = this.getNoiseBuffer(ctx);
+    this.emfSource = ctx.createBufferSource();
+    this.emfSource.buffer = noiseBuffer;
+    this.emfSource.loop = true;
+    
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(900, ctx.currentTime);
+    filter.Q.setValueAtTime(1.4, ctx.currentTime);
+    
+    this.emfSource.connect(filter);
+    filter.connect(this.emfGain);
+    this.emfSource.start();
+    
+    this.activeNodes.push(this.emfSource, filter, this.emfGain);
+  }
+
+  setEMFIntensity(intensity: number) {
+    if (!this.audioCtx || !this.emfGain) return;
+    const targetGain = Math.max(0, Math.min(0.55, intensity * 0.55));
+    this.emfGain.gain.setTargetAtTime(targetGain, this.audioCtx.currentTime, 0.15);
   }
 
   private createFluorescentHum(ctx: AudioContext) {

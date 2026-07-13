@@ -4714,7 +4714,58 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
         }
       }
-
+      
+      // Calculate real-time EMF static intensity from monster and spark emitters
+      let monsterDist = 999.0;
+      if (entityMeshRef.current && entityMeshRef.current.visible) {
+        monsterDist = camera.position.distanceTo(entityMeshRef.current.position);
+      }
+      
+      let minSparkDist = 999.0;
+      for (const emitterPos of sparkEmittersRef.current) {
+        const d = camera.position.distanceTo(emitterPos);
+        if (d < minSparkDist) {
+          minSparkDist = d;
+        }
+      }
+      
+      const monsterInt = monsterDist < 18.0 ? Math.pow(Math.max(0, (18.0 - monsterDist) / 18.0), 1.8) : 0;
+      const sparkInt = minSparkDist < 6.0 ? Math.pow(Math.max(0, (6.0 - minSparkDist) / 6.0), 1.5) * 0.35 : 0;
+      const totalEMF = Math.min(1.0, monsterInt + sparkInt);
+      
+      // Update Audio Synthesizer EMF Static volume
+      Synthesizer.setEMFIntensity(totalEMF);
+      
+      // Animate VHS Glitch Overlays and Canvas transformations
+      const glitchOverlay = document.getElementById('vhs-glitch-overlay');
+      const noiseOverlay = document.getElementById('vhs-noise-overlay');
+      const scanlinesOverlay = document.getElementById('vhs-scanlines-overlay');
+      const canvasElement = renderer.domElement;
+      
+      if (glitchOverlay && noiseOverlay && scanlinesOverlay && canvasElement) {
+        if (totalEMF > 0.05) {
+          glitchOverlay.style.opacity = (totalEMF * 0.45).toString();
+          noiseOverlay.style.opacity = (totalEMF * 0.35).toString();
+          scanlinesOverlay.style.opacity = (0.2 + totalEMF * 0.6).toString();
+          
+          const jitterX = (Math.random() - 0.5) * totalEMF * 14.0;
+          const jitterY = (Math.random() - 0.5) * totalEMF * 8.0;
+          const zoom = 1.0 + totalEMF * 0.035;
+          canvasElement.style.transform = `translate(${jitterX}px, ${jitterY}px) scale(${zoom})`;
+          
+          const hueShift = totalEMF * 30.0 * (Math.random() > 0.5 ? 1 : -1);
+          const contrast = 1.0 + totalEMF * 0.5;
+          const brightness = 1.0 - totalEMF * 0.15;
+          canvasElement.style.filter = `hue-rotate(${hueShift}deg) contrast(${contrast}) brightness(${brightness})`;
+        } else {
+          glitchOverlay.style.opacity = '0';
+          noiseOverlay.style.opacity = '0';
+          scanlinesOverlay.style.opacity = '0';
+          canvasElement.style.transform = '';
+          canvasElement.style.filter = '';
+        }
+      }
+ 
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);
     };
