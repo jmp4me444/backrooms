@@ -52,7 +52,7 @@ export default function App() {
     // Set a timeout to reset game state and restart after 3.5 seconds
     setTimeout(() => {
       setIsDead(false);
-      handleSynthesis('yellow walls, office, hum');
+      handleSynthesis(keywords);
     }, 3500);
   };
 
