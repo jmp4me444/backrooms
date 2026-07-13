@@ -75,6 +75,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const itemsMeshesRef = useRef<{ [key: string]: THREE.Group }>({});
   const entityMeshRef = useRef<THREE.Group | null>(null);
   const monsterCooldownRef = useRef<number | null>(null);
+  const glitchedWallsRef = useRef<THREE.Mesh[]>([]);
   
   const hammerRef = useRef<THREE.Group | null>(null);
   const isSwingingRef = useRef<boolean>(false);
@@ -934,19 +935,25 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (k === 'e' && activeCassetteNear) {
         activeCassetteNear.played = true;
         const logIdx = activeCassetteNear.logIndex;
-        Synthesizer.triggerTapeAudioLog(logIdx);
         
-        const subtitles = [
-          "VOICE DIARY: \"...H-e-l-p... t-h-e-y... a-r-e... h-e-r-e...\"",
-          "VOICE DIARY: \"...D-o... n-o-t... t-r-u-s-t... t-h-e... w-a-l-l-s...\"",
-          "VOICE DIARY: \"...W-h-e-r-e... i-s... t-h-e... e-x-i-t...\"",
-          "VOICE DIARY: \"...I-t... i-s... l-o-o-k-i-n-g... a-t... m-e...\""
-        ];
-        const sub = subtitles[logIdx % subtitles.length];
-        setHudMessage(sub);
+        if (logIdx === 99) {
+          Synthesizer.triggerTapeAudioLog(2);
+          setHudMessage("VOICE DIARY (SECRET): \"M.E.G. Log #09... No-clipped through drywall... Pocket dimension seems stable... Do not trust windows...\"");
+        } else {
+          Synthesizer.triggerTapeAudioLog(logIdx);
+          const subtitles = [
+            "VOICE DIARY: \"...H-e-l-p... t-h-e-y... a-r-e... h-e-r-e...\"",
+            "VOICE DIARY: \"...D-o... n-o-t... t-r-u-s-t... t-h-e... w-a-l-l-s...\"",
+            "VOICE DIARY: \"...W-h-e-r-e... i-s... t-h-e... e-x-i-t...\"",
+            "VOICE DIARY: \"...I-t... i-s... l-o-o-k-i-n-g... a-t... m-e...\""
+          ];
+          const sub = subtitles[logIdx % subtitles.length];
+          setHudMessage(sub);
+        }
+        
         setTimeout(() => {
-          setHudMessage('USE WASD / ARROWS TO MOVE. DRAG TO LOOK.');
-        }, 3500);
+          setHudMessage('USE WASD / ARROWS TO MOVE. DRAG SCREEN TO LOOK.');
+        }, 5500);
       }
     };
 
@@ -1272,6 +1279,98 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // Clear walkways on the other side of the doors/stairs to prevent entrapment
     grid[1][4] = 0;
     grid[3][4] = 0;
+
+    // Clear glitched walls list
+    glitchedWallsRef.current = [];
+    
+    // Carve out a hidden secret chamber and glitched wall portal (Option 1)
+    let secretRoomFound = false;
+    let secretCx = -1;
+    let secretCz = -1;
+    let glitchWallX = -1;
+    let glitchWallZ = -1;
+    
+    // Find a 3x3 cluster of solid walls/columns (excluding borders and lobby area)
+    for (let x = 4; x < MAP_SIZE - 2; x++) {
+      if (secretRoomFound) break;
+      for (let z = 4; z < MAP_SIZE - 2; z++) {
+        let isSolidCluster = true;
+        for (let dx = -1; dx <= 1; dx++) {
+          for (let dz = -1; dz <= 1; dz++) {
+            if (grid[x + dx][z + dz] === 0 || grid[x + dx][z + dz] === 3 || grid[x + dx][z + dz] === 4) {
+              isSolidCluster = false;
+              break;
+            }
+          }
+          if (!isSolidCluster) break;
+        }
+        
+        if (isSolidCluster) {
+          // Set all cells in the 3x3 cluster to solid walls first to seal it
+          for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+              grid[x + dx][z + dz] = 1;
+            }
+          }
+          
+          // Carve the center as secret chamber
+          grid[x][z] = 10; // 10 = secret chamber walkway
+          secretCx = x;
+          secretCz = z;
+          
+          // Pick one of the surrounding 4 wall blocks that borders a corridor (0)
+          const neighbors = [
+            { x: x - 1, z: z },
+            { x: x + 1, z: z },
+            { x: x, z: z - 1 },
+            { x: x, z: z + 1 }
+          ];
+          
+          // Look for a neighbor wall that also touches a regular corridor cell (0) in the outer maze
+          for (const n of neighbors) {
+            const checkDirs = [
+              { dx: -1, dz: 0 },
+              { dx: 1, dz: 0 },
+              { dx: 0, dz: -1 },
+              { dx: 0, dz: 1 }
+            ];
+            let touchesCorridor = false;
+            for (const dir of checkDirs) {
+              const nx = n.x + dir.dx;
+              const nz = n.z + dir.dz;
+              if (nx >= 0 && nx < MAP_SIZE && nz >= 0 && nz < MAP_SIZE) {
+                if (grid[nx][nz] === 0) {
+                  touchesCorridor = true;
+                  break;
+                }
+              }
+            }
+            if (touchesCorridor) {
+              grid[n.x][n.z] = 11; // 11 = Glitched No-Clip Wall block!
+              glitchWallX = n.x;
+              glitchWallZ = n.z;
+              secretRoomFound = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback: if no natural cluster is found, force carve one at [7,7] and seal it
+    if (!secretRoomFound) {
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dz = -1; dz <= 1; dz++) {
+          grid[7 + dx][7 + dz] = 1;
+        }
+      }
+      grid[7][7] = 10;
+      grid[6][7] = 11;
+      secretCx = 7;
+      secretCz = 7;
+      glitchWallX = 6;
+      glitchWallZ = 7;
+    }
 
     // Place Doors (3) randomly in open corridors (walkways grid === 0)
     for (let x = 2; x < MAP_SIZE - 2; x++) {
@@ -1693,7 +1792,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
     const isWalkable = (cx: number, cz: number) => {
       if (cx < 0 || cx >= MAP_SIZE || cz < 0 || cz >= MAP_SIZE) return false;
-      return grid[cx][cz] === 0 || grid[cx][cz] === 3;
+      return grid[cx][cz] === 0 || grid[cx][cz] === 3 || grid[cx][cz] === 10 || grid[cx][cz] === 11;
     };
 
     const trimH = 0.12;
@@ -1705,13 +1804,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         const posX = x * CELL_SIZE;
         const posZ = z * CELL_SIZE;
 
-        if (grid[x][z] === 1) {
+        if (grid[x][z] === 1 || grid[x][z] === 11) {
           // Wall cube - select face materials dynamically to add decals randomly on visible corridor faces
-          const faceMaterials = [wallMat, wallMat, wallMat, wallMat, wallMat, wallMat];
+          let faceMaterials = [wallMat, wallMat, wallMat, wallMat, wallMat, wallMat];
           const decalSeed = Math.abs(Math.sin(x * 12.56 + z * 88.19) * 1000);
           const decalRand = decalSeed % 1;
           
-          if (decalRand < 0.12) { // 12% chance for some decal on this wall cell
+          if (decalRand < 0.12 && grid[x][z] === 1) {
             const pickDecalMat = (decalRand < 0.07) ? wallMatArrow : wallMatImprint;
             
             if (isWalkable(x + 1, z)) faceMaterials[0] = pickDecalMat; // East
@@ -1720,11 +1819,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             else if (isWalkable(x, z - 1)) faceMaterials[5] = pickDecalMat; // North
           }
 
+          if (grid[x][z] === 11) {
+            faceMaterials = faceMaterials.map(mat => {
+              const glMat = mat.clone();
+              glMat.emissive = new THREE.Color(0x2b1c00); // subtle orange glitch glow
+              glMat.emissiveIntensity = 0.08;
+              return glMat;
+            });
+          }
+
           const mesh = new THREE.Mesh(wallGeo, faceMaterials);
           mesh.position.set(posX, 3.5 / 2, posZ);
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           mazeGroup.add(mesh);
+
+          if (grid[x][z] === 11) {
+            glitchedWallsRef.current.push(mesh);
+            mesh.userData.isGlitchedWall = true;
+            mesh.userData.initialX = posX;
+            mesh.userData.initialZ = posZ;
+          }
 
           // Exposed Wires spawning check (8% chance per wall cell bordering corridor)
           const spawnWires = Math.abs(Math.sin(x * 77.21 + z * 33.49) * 100) % 1 < 0.08;
@@ -2100,6 +2215,54 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
           windowGroup.add(bL, bR, bA, bB, glass);
           mazeGroup.add(windowGroup);
+        } else if (grid[x][z] === 10) {
+          // Render a secret pocket chamber!
+          // We spawn a circular iron pedestal in the center, and place a special Golden Cassette Recorder on it!
+          const secretGroup = new THREE.Group();
+          secretGroup.position.set(posX, 0, posZ);
+          
+          // Small steel pedestal
+          const pedMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.15 });
+          const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.95, 12), pedMat);
+          pedestal.position.y = 0.475;
+          pedestal.castShadow = true; pedestal.receiveShadow = true;
+          secretGroup.add(pedestal);
+          
+          // Golden cassette recorder on top
+          const recorderGroup = new THREE.Group();
+          recorderGroup.position.set(0, 0.95, 0);
+          recorderGroup.rotation.y = Math.PI / 4;
+          
+          const goldMat = new THREE.MeshStandardMaterial({ 
+            color: 0xffd700, 
+            metalness: 0.9, 
+            roughness: 0.15, 
+            emissive: 0x996600, 
+            emissiveIntensity: 0.3 
+          });
+          const recBody = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.22), goldMat);
+          recBody.castShadow = true;
+          recorderGroup.add(recBody);
+          
+          const recButton = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), new THREE.MeshStandardMaterial({ color: 0xd32f2f }));
+          recButton.position.set(-0.1, 0.06, 0.06);
+          recorderGroup.add(recButton);
+          
+          // Subtle localized glow light above the golden tape recorder
+          const glowLight = new THREE.PointLight(0xffcc00, 2.5, 3.5);
+          glowLight.position.set(0, 0.8, 0);
+          glowLight.castShadow = true;
+          recorderGroup.add(glowLight);
+          
+          secretGroup.add(recorderGroup);
+          mazeGroup.add(secretGroup);
+          
+          // Register this secret cassette recorder in our cassettes array!
+          cassettesRef.current.push({
+            mesh: recorderGroup,
+            played: false,
+            logIndex: 99 // Special index for the secret MEG noclip report
+          });
         } else if (grid[x][z] === 0) {
           // Render theme-specific floor and wall props inside walkable corridors
           const isLavaTheme = theme.name.includes('Boiler') || theme.name.includes('Underworld');
@@ -4744,9 +4907,35 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
       
+      // Vibrating visual glitched wall animations (Option 1)
+      if (glitchedWallsRef.current.length > 0) {
+        for (let mesh of glitchedWallsRef.current) {
+          const initX = mesh.userData.initialX;
+          const initZ = mesh.userData.initialZ;
+          const vibX = (Math.random() - 0.5) * 0.045;
+          const vibZ = (Math.random() - 0.5) * 0.045;
+          mesh.position.x = initX + vibX;
+          mesh.position.z = initZ + vibZ;
+          
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+          const flick = 0.05 + Math.random() * 0.12;
+          for (let m of mats) {
+            if ((m as any).emissive) {
+              (m as any).emissiveIntensity = flick;
+            }
+          }
+        }
+      }
+
+      const px = Math.round(camera.position.x / CELL_SIZE);
+      const pz = Math.round(camera.position.z / CELL_SIZE);
+      const inGlitchedWall = px >= 0 && px < MAP_SIZE && pz >= 0 && pz < MAP_SIZE && grid[px]?.[pz] === 11;
+
       const monsterInt = monsterDist < 18.0 ? Math.pow(Math.max(0, (18.0 - monsterDist) / 18.0), 1.8) : 0;
       const sparkInt = minSparkDist < 6.0 ? Math.pow(Math.max(0, (6.0 - minSparkDist) / 6.0), 1.5) * 0.35 : 0;
-      const totalEMF = Math.min(1.0, monsterInt + sparkInt);
+      
+      // If player is no-clipping inside the glitched wall, force maximum static/glitch distortion!
+      const totalEMF = inGlitchedWall ? 1.0 : Math.min(1.0, monsterInt + sparkInt);
       
       // Update Audio Synthesizer EMF Static volume
       Synthesizer.setEMFIntensity(totalEMF);
@@ -4771,9 +4960,16 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           canvasElement.style.transform = `translate(${jitterX}px, ${jitterY}px) scale(${zoom})`;
           
           const hueShift = totalEMF * 30.0 * (Math.random() > 0.5 ? 1 : -1);
+          const actualHueShift = inGlitchedWall ? (elapsedTime * 720) % 360 : hueShift;
           const contrast = 1.0 + totalEMF * 0.5;
-          const brightness = 1.0 - totalEMF * 0.15;
-          canvasElement.style.filter = `hue-rotate(${hueShift}deg) contrast(${contrast}) brightness(${brightness})`;
+          const brightness = inGlitchedWall ? 0.6 + Math.sin(elapsedTime * 30) * 0.25 : (1.0 - totalEMF * 0.15);
+          
+          canvasElement.style.filter = `hue-rotate(${actualHueShift}deg) contrast(${contrast}) brightness(${brightness})`;
+          
+          // Play a vacuum glitch hum periodically if inside the glitched wall
+          if (inGlitchedWall && Math.random() > 0.93) {
+            Synthesizer.triggerEntityGlitch();
+          }
         } else {
           glitchOverlay.style.opacity = '0';
           noiseOverlay.style.opacity = '0';
