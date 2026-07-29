@@ -3231,28 +3231,26 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       sparkEmittersRef.current = [];
       const metalMaterial = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.8, roughness: 0.3 });
 
-      // Scatter 10 waist-high glowing Almond Milk bottles throughout walkable corridor tiles
-      let milkSpawned = 0;
-      for (let attempt = 0; attempt < 120 && milkSpawned < 10; attempt++) {
-        const rx = Math.floor((Math.abs(Math.sin(attempt * 13.37 + levelSeed * 4.2)) % 1) * MAP_SIZE);
-        const rz = Math.floor((Math.abs(Math.sin(attempt * 31.73 + levelSeed * 8.1)) % 1) * MAP_SIZE);
+      // Spawn glowing Almond Milk bottles in 75% of ALL walkable corridor tiles across the level
+      for (let x = 0; x < MAP_SIZE; x++) {
+        for (let z = 0; z < MAP_SIZE; z++) {
+          if (grid[x]?.[z] === 0) {
+            // Pseudo-random 75% probability check per corridor tile
+            const seedVal = (Math.abs(Math.sin(x * 12.9898 + z * 78.233 + levelSeed * 43758.5453)) * 10000) % 1;
+            if (seedVal < 0.75) {
+              const milkMesh = createAlmondMilkMesh();
+              const posX = x * CELL_SIZE;
+              const posZ = z * CELL_SIZE;
+              milkMesh.position.set(posX, 0.55, posZ);
+              mazeGroup.add(milkMesh);
 
-        if (grid[rx]?.[rz] === 0) {
-          const offX = ((Math.abs(Math.sin(attempt * 9.1)) % 1) - 0.5) * 2.0;
-          const offZ = ((Math.abs(Math.sin(attempt * 14.3)) % 1) - 0.5) * 2.0;
-
-          const milkMesh = createAlmondMilkMesh();
-          const posX = rx * CELL_SIZE + offX;
-          const posZ = rz * CELL_SIZE + offZ;
-          milkMesh.position.set(posX, 0.55, posZ);
-          mazeGroup.add(milkMesh);
-
-          almondMilksRef.current.push({
-            mesh: milkMesh,
-            gridX: rx,
-            gridZ: rz
-          });
-          milkSpawned++;
+              almondMilksRef.current.push({
+                mesh: milkMesh,
+                gridX: x,
+                gridZ: z
+              });
+            }
+          }
         }
       }
       
