@@ -39,6 +39,7 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [volume, setVolume] = useState(0.4);
   const [entityDistance, setEntityDistance] = useState(999.0);
+  const [isSanityActive, setIsSanityActive] = useState(false);
 
   const [isDead, setIsDead] = useState(false);
 
@@ -84,6 +85,7 @@ export default function App() {
   const handleSynthesis = async (query: string) => {
     setIsLoading(true);
     setShowSplash(true);
+    setIsSanityActive(false);
     setKeywords(query);
     setSearchQuery(query);
 
@@ -106,6 +108,11 @@ export default function App() {
       }
       setIsLoading(false);
       setShowSplash(false);
+
+      // Activate Sanity Meter 3.0 seconds AFTER level is fully loaded & visible!
+      setTimeout(() => {
+        setIsSanityActive(true);
+      }, 3000);
     }, 2500);
   };
 
@@ -293,6 +300,7 @@ export default function App() {
             setEntityDistance={setEntityDistance}
             onLevelTransition={handleLevelTransition}
             onPlayerDeath={handlePlayerDeath}
+            isSanityActive={isSanityActive}
           />
         )}
         

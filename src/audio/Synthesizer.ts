@@ -1219,6 +1219,32 @@ class SoundSynthesizer {
     endClickOsc.start(endClickTime);
     endClickOsc.stop(endClickTime + 0.1);
   }
+
+  // triggerDrinkSound: Synthesizes a drinking gulp sound effect
+  triggerDrinkSound() {
+    this.init();
+    this.resume();
+    if (!this.audioCtx || !this.masterGain) return;
+    const ctx = this.audioCtx;
+    const now = ctx.currentTime;
+
+    for (let i = 0; i < 3; i++) {
+      const t = now + i * 0.16;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(320 - i * 35, t);
+      osc.frequency.exponentialRampToValueAtTime(140, t + 0.12);
+
+      gain.gain.setValueAtTime(0.35 * this.volumeLevel, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+      osc.start(t);
+      osc.stop(t + 0.14);
+    }
+  }
 }
 
 export const Synthesizer = new SoundSynthesizer();
