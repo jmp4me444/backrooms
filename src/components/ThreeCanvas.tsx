@@ -2297,55 +2297,39 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           bezel.position.set(0, 0.17, 0.161);
           tvGroup.add(bezel);
           
-          // Create dynamic live animated CRT screen texture
+          // Create dynamic live animated CRT static snow noise texture (128x96)
           const cvs = document.createElement('canvas');
-          cvs.width = 256; cvs.height = 192;
+          cvs.width = 128; cvs.height = 96;
           const ctx = cvs.getContext('2d')!;
           const crtTexture = new THREE.CanvasTexture(cvs);
           
           const updateTVFrame = (t: number) => {
-            ctx.fillStyle = '#050a0e';
-            ctx.fillRect(0, 0, 256, 192);
-
-            // SMPTE Color Bars
-            const colors = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'];
-            for (let b = 0; b < 7; b++) {
-              ctx.fillStyle = colors[b];
-              ctx.fillRect(b * (256 / 7), 0, 256 / 7, 115);
+            const imgData = ctx.createImageData(128, 96);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+              const noise = Math.random() > 0.4 ? Math.floor(Math.random() * 255) : 0;
+              data[i] = noise;     // Red
+              data[i + 1] = noise; // Green
+              data[i + 2] = noise; // Blue
+              data[i + 3] = 255;   // Alpha
             }
+            ctx.putImageData(imgData, 0, 0);
 
-            // Animated Sine Wave Oscilloscope Signal
-            ctx.strokeStyle = '#00ffcc';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            for (let px = 0; px < 256; px += 4) {
-              const py = 145 + Math.sin(px * 0.05 + t * 8) * 16;
-              if (px === 0) ctx.moveTo(px, py);
-              else ctx.lineTo(px, py);
-            }
-            ctx.stroke();
-
-            // Emergency Broadcast Text Banner
-            ctx.fillStyle = '#000000';
-            ctx.fillRect(0, 115, 256, 22);
-            ctx.fillStyle = (t * 2) % 1.0 > 0.5 ? '#ff2222' : '#ffffff';
-            ctx.font = 'bold 11px monospace';
-            ctx.fillText('⚡ M.E.G. EMERGENCY SIGNAL', 12, 130);
-
-            // Moving VHS Noise Scanlines
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            for (let i = 0; i < 35; i++) {
-              const rx = Math.random() * 256;
-              const ry = Math.random() * 192;
-              ctx.fillRect(rx, ry, Math.random() * 20 + 5, 1);
-            }
+            // Animated horizontal CRT tracking bar flickering down the screen
+            const barY = Math.floor((t * 80) % 96);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillRect(0, barY, 128, 10);
 
             crtTexture.needsUpdate = true;
           };
 
-          const crtScreenMat = new THREE.MeshBasicMaterial({ map: crtTexture });
-          const crtScreen = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.24, 0.02), crtScreenMat);
-          crtScreen.position.set(-0.04, 0.17, 0.168);
+          const crtScreenMat = new THREE.MeshBasicMaterial({ 
+            map: crtTexture, 
+            side: THREE.DoubleSide,
+            toneMapped: false 
+          });
+          const crtScreen = new THREE.Mesh(new THREE.PlaneGeometry(0.32, 0.25), crtScreenMat);
+          crtScreen.position.set(-0.03, 0.17, 0.172); // Positioned cleanly on the front face
           tvGroup.add(crtScreen);
 
           const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.4 });
