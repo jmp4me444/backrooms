@@ -2152,8 +2152,28 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const rightHandrail = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, length, 8), railMat);
           rightHandrail.position.set(stepWidth / 2 - 0.05, yCenter, zCenter);
           rightHandrail.rotation.x = Math.PI / 2 - pitch;
-          rightHandrail.castShadow = true;
-          stairsGroup.add(rightHandrail);
+          // Glowing Almond Milk Bottle sitting directly in front of the stairs
+          const milkGroup = new THREE.Group();
+          milkGroup.position.set(0, 0.4, -CELL_SIZE / 2 + 0.4);
+
+          const bottleGeo = new THREE.CylinderGeometry(0.12, 0.13, 0.4, 12);
+          const bottleMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, transmission: 0.85, transparent: true, opacity: 0.9 });
+          const bottleMesh = new THREE.Mesh(bottleGeo, bottleMat);
+          
+          const liquidGeo = new THREE.CylinderGeometry(0.11, 0.12, 0.32, 12);
+          const liquidMat = new THREE.MeshStandardMaterial({ color: 0xfff8e7, roughness: 0.3, emissive: 0x887755, emissiveIntensity: 0.6 });
+          const liquidMesh = new THREE.Mesh(liquidGeo, liquidMat);
+
+          const capGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 12);
+          const capMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.3 });
+          const capMesh = new THREE.Mesh(capGeo, capMat);
+          capMesh.position.y = 0.22;
+
+          const milkLight = new THREE.PointLight(0xffe8b0, 4.5, 7.0);
+          milkLight.position.set(0, 0.3, 0);
+
+          milkGroup.add(bottleMesh, liquidMesh, capMesh, milkLight);
+          stairsGroup.add(milkGroup);
 
           mazeGroup.add(stairsGroup);
         } else if (grid[x][z] === 5) {
@@ -4545,8 +4565,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           if (grid[x][z] === 4) {
             const stairsPos = new THREE.Vector3(x * CELL_SIZE, camera.position.y, z * CELL_SIZE);
             const dist = camera.position.distanceTo(stairsPos);
-            if (dist < 1.8) {
+            if (dist < 2.2) {
               nearestStairs = true;
+              // Trigger Almond Milk drink action when player reaches the Almond Milk bottle in front of stairs
+              window.dispatchEvent(new CustomEvent('DRINK_ALMOND_MILK'));
             }
           }
         }

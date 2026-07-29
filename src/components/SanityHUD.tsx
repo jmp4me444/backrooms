@@ -48,6 +48,20 @@ export const SanityHUD: React.FC<SanityHUDProps> = ({ isLevelLoaded, onPlayerDea
     return () => clearTimeout(activateTimer);
   }, [isLevelLoaded]);
 
+  // Listen for 3D Almond Milk bottle pickup in front of stairs
+  useEffect(() => {
+    const handleDrinkEvent = () => {
+      setSanity(prev => Math.min(100, prev + 35));
+      setHudNotice('DRANK ALMOND MILK AT STAIRS! (+35% SANITY RESTORED)');
+      setTimeout(() => {
+        setHudNotice(null);
+      }, 3500);
+    };
+
+    window.addEventListener('DRINK_ALMOND_MILK', handleDrinkEvent);
+    return () => window.removeEventListener('DRINK_ALMOND_MILK', handleDrinkEvent);
+  }, []);
+
   // Periodic proximity detection: highlights nearby bottles as player wanders
   useEffect(() => {
     if (!isActive || bottles.length === 0) return;
