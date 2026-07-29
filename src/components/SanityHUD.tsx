@@ -17,17 +17,15 @@ export const SanityHUD: React.FC<SanityHUDProps> = ({ isLevelLoaded, onPlayerDea
   const [isActive, setIsActive] = useState<boolean>(false);
   const [hudNotice, setHudNotice] = useState<string | null>(null);
 
-  // Reset & delay activation until 10s after level is fully loaded
+  // Delay activation until 10s after level is fully loaded
   useEffect(() => {
     if (!isLevelLoaded) {
       setIsActive(false);
-      setSanity(100);
       return;
     }
 
     const activateTimer = setTimeout(() => {
       setIsActive(true);
-      setSanity(100);
     }, 10000); // 10 seconds post-load delay
 
     return () => clearTimeout(activateTimer);
