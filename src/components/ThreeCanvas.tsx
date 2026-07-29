@@ -4855,12 +4855,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
               uData.rightArm.rotation.x = -Math.cos(elapsedTime * runSpeed) * runAngle * 1.2;
             }
 
-            // Touch player check: glitch jumpscare & auto-shatter
+            // Touch player check: brief glitch jumpscare effect (mannequin remains intact unless hit with hammer!)
             if (dist < 0.95) {
               setEntityDistance(1.0);
-              setTimeout(() => setEntityDistance(999.0), 800);
-              smashObject(b);
-              break; // exit early to prevent collection mutation errors
+              setTimeout(() => setEntityDistance(999.0), 600);
+              // Push back slightly so mannequin doesn't overlap camera
+              const pushBack = new THREE.Vector3().copy(mPos).sub(camera.position);
+              pushBack.y = 0;
+              pushBack.normalize();
+              mPos.add(pushBack.multiplyScalar(0.4));
             }
           }
         }
