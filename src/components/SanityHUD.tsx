@@ -9,7 +9,7 @@ interface SanityHUDProps {
 export const SanityHUD: React.FC<SanityHUDProps> = ({ isLevelLoaded, onPlayerDeath }) => {
   const [sanity, setSanity] = useState<number>(100);
   const [isActive, setIsActive] = useState<boolean>(false);
-  const [milkAvailable, setMilkAvailable] = useState<boolean>(false);
+  const [bottlesCount, setBottlesCount] = useState<number>(10);
   const [hudNotice, setHudNotice] = useState<string | null>(null);
 
   // Reset & delay activation until 10s after level is fully loaded
@@ -17,34 +17,20 @@ export const SanityHUD: React.FC<SanityHUDProps> = ({ isLevelLoaded, onPlayerDea
     if (!isLevelLoaded) {
       setIsActive(false);
       setSanity(100);
-      setMilkAvailable(false);
+      setBottlesCount(10);
       return;
     }
 
     const activateTimer = setTimeout(() => {
       setIsActive(true);
       setSanity(100);
-      setMilkAvailable(true);
+      setBottlesCount(10);
     }, 10000); // 10 seconds post-load delay
 
     return () => clearTimeout(activateTimer);
   }, [isLevelLoaded]);
 
-  // Listen for 3D Almond Milk bottle pickup in 3D level
-  useEffect(() => {
-    const handleDrinkEvent = () => {
-      setSanity(prev => Math.min(100, prev + 35));
-      setHudNotice('DRANK ALMOND MILK! (+35% SANITY RESTORED)');
-      setTimeout(() => {
-        setHudNotice(null);
-      }, 3500);
-    };
-
-    window.addEventListener('DRINK_ALMOND_MILK', handleDrinkEvent);
-    return () => window.removeEventListener('DRINK_ALMOND_MILK', handleDrinkEvent);
-  }, []);
-
-  // Baseline Sanity drain timer (1% every 5 seconds)
+  // Baseline Sanity drain timer (1% every 4 seconds)
   useEffect(() => {
     if (!isActive) return;
 
@@ -56,22 +42,20 @@ export const SanityHUD: React.FC<SanityHUDProps> = ({ isLevelLoaded, onPlayerDea
         }
         return next;
       });
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(drainInterval);
   }, [isActive, onPlayerDeath]);
 
   // Drink Almond Milk action
   const handleDrinkMilk = () => {
+    if (bottlesCount <= 0) return;
+    
     Synthesizer.triggerDrinkSound();
+    const nextCount = bottlesCount - 1;
+    setBottlesCount(nextCount);
     setSanity(prev => Math.min(100, prev + 35));
-    setHudNotice('DRANK ALMOND MILK! (+35% SANITY RESTORED)');
-    setMilkAvailable(false);
-
-    // Respawn another Almond Milk bottle after 20 seconds
-    setTimeout(() => {
-      setMilkAvailable(true);
-    }, 20000);
+    setHudNotice(`DRANK ALMOND MILK! (+35% SANITY RESTORED - ${nextCount} BOTTLES LEFT)`);
 
     setTimeout(() => {
       setHudNotice(null);
@@ -97,15 +81,19 @@ export const SanityHUD: React.FC<SanityHUDProps> = ({ isLevelLoaded, onPlayerDea
         </div>
       </div>
 
-      {/* Collectible / Consumable Almond Milk Quick-Use Button */}
-      {milkAvailable && (
+      {/* 10 Almond Milk Bottles Supply Action Button */}
+      {bottlesCount > 0 ? (
         <button
           onClick={handleDrinkMilk}
           className="flex items-center gap-2 bg-emerald-950/90 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 text-[10px] font-bold px-3 py-1.5 rounded shadow-lg backdrop-blur-md transition active:scale-95 animate-bounce"
         >
           <span>🍾 DRINK ALMOND MILK</span>
-          <span className="text-white/60 text-[9px]">(+35%)</span>
+          <span className="text-emerald-400/80 text-[9px]">({bottlesCount} LEFT)</span>
         </button>
+      ) : (
+        <div className="text-[9px] text-red-400 font-bold bg-black/80 border border-red-500/30 px-2.5 py-1 rounded">
+          OUT OF ALMOND MILK!
+        </div>
       )}
 
       {/* Temporary HUD Notice */}
