@@ -150,40 +150,62 @@ html, body {
   flex-direction: column;
 }
 
+/* Document Body Portal for Mobile Controls */
+.mobile-touch-controls-root {
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 999999 !important;
+}
+
 /* Touch screen joystick styling (Bottom Left corner) */
 .touch-joystick-base {
   position: fixed !important;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-  left: 16px !important; /* pinned bottom-left */
-  z-index: 9999 !important;
-  width: 96px !important;
-  height: 96px !important;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  left: max(16px, env(safe-area-inset-left, 16px)) !important;
+  z-index: 999999 !important;
+  width: 92px !important;
+  height: 92px !important;
   border-radius: 9999px !important;
-  border: 2px solid rgba(16, 185, 129, 0.7) !important;
-  background-color: rgba(0, 0, 0, 0.75) !important;
-  backdrop-filter: blur(6px) !important;
+  border: 2px solid rgba(16, 185, 129, 0.75) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   user-select: none !important;
   touch-action: none !important;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3) !important;
+  pointer-events: auto !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.35) !important;
 }
 
-/* Hide on desktop screens (>= 1024px width) */
-@media (min-width: 1024px) {
-  .touch-joystick-base {
+/* Directional Arrow Overlay styling */
+.touch-arrow {
+  position: absolute !important;
+  font-family: monospace !important;
+  font-size: 9px !important;
+  color: rgba(52, 211, 153, 0.6) !important;
+  pointer-events: none !important;
+}
+.top-arrow { top: 4px !important; }
+.bottom-arrow { bottom: 4px !important; }
+.left-arrow { left: 5px !important; }
+.right-arrow { right: 5px !important; }
+
+/* Hide on desktop screens with fine pointer */
+@media (min-width: 1024px) and (pointer: fine) {
+  .mobile-touch-controls-root {
     display: none !important;
   }
 }
 
 .touch-joystick-knob {
-  width: 38px !important;
-  height: 38px !important;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 9999px !important;
-  background-color: rgba(16, 185, 129, 0.55) !important;
-  border: 1.5px solid rgba(16, 185, 129, 0.85) !important;
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
+  background-color: rgba(16, 185, 129, 0.6) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.9) !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.45) !important;
   transition: transform 0.075s ease-out !important;
   pointer-events: none !important;
 }
@@ -211,15 +233,15 @@ canvas {
 /* Touch screen hammer button styling (Bottom Right corner) */
 .touch-hammer-btn {
   position: fixed !important;
-  bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
-  right: 16px !important; /* pinned bottom-right */
-  z-index: 9999 !important;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
+  right: max(16px, env(safe-area-inset-right, 16px)) !important;
+  z-index: 999999 !important;
   width: 80px !important;
   height: 80px !important;
   border-radius: 9999px !important;
-  border: 2px solid rgba(16, 185, 129, 0.75) !important;
-  background-color: rgba(0, 0, 0, 0.75) !important;
-  backdrop-filter: blur(6px) !important;
+  border: 2px solid rgba(16, 185, 129, 0.8) !important;
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(8px) !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -227,20 +249,25 @@ canvas {
   color: #10b981 !important;
   user-select: none !important;
   touch-action: none !important;
+  pointer-events: auto !important;
   cursor: pointer !important;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35) !important;
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4) !important;
   transition: transform 0.1s ease !important;
+}
+
+.hammer-label {
+  font-family: monospace !important;
+  font-size: 7.5px !important;
+  font-weight: bold !important;
+  letter-spacing: 1px !important;
+  color: #6ee7b7 !important;
+  margin-top: 2px !important;
+  pointer-events: none !important;
 }
 
 .touch-hammer-btn:active {
   transform: scale(0.9) !important;
   background-color: rgba(16, 185, 129, 0.25) !important;
-}
-
-@media (min-width: 1024px) {
-  .touch-hammer-btn {
-    display: none !important;
-  }
 }
 
 /* CRT Phosphor Glow / Chromatic RGB Split on HUD text */
