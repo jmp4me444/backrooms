@@ -88,6 +88,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const fountainsRef = useRef<{ mesh: THREE.Group; particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; oy: number }[] }[]>([]);
   const steamParticlesRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; life: number; maxLife: number; ox: number; oy: number; oz: number }[]>([]);
   const cassettesRef = useRef<{ mesh: THREE.Group; played: boolean; logIndex: number }[]>([]);
+  const crtTVsRef = useRef<{ screenMat: THREE.MeshBasicMaterial; light: THREE.PointLight }[]>([]);
   const sparkEmittersRef = useRef<THREE.Vector3[]>([]);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
 
@@ -939,14 +940,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         
         if (logIdx === 99) {
           Synthesizer.triggerTapeAudioLog(2);
-          setHudMessage("VOICE DIARY (SECRET): \"M.E.G. Log #09... No-clipped through drywall... Pocket dimension seems stable... Do not trust windows...\"");
+          setHudMessage("TV TRANSMISSION (SECRET): \"ASYNC BROADCAST: No-clipped through drywall... Pocket dimension seems stable... Do not trust windows...\"");
         } else {
           Synthesizer.triggerTapeAudioLog(logIdx);
           const subtitles = [
-            "VOICE DIARY: \"...H-e-l-p... t-h-e-y... a-r-e... h-e-r-e...\"",
-            "VOICE DIARY: \"...D-o... n-o-t... t-r-u-s-t... t-h-e... w-a-l-l-s...\"",
-            "VOICE DIARY: \"...W-h-e-r-e... i-s... t-h-e... e-x-i-t...\"",
-            "VOICE DIARY: \"...I-t... i-s... l-o-o-k-i-n-g... a-t... m-e...\""
+            "TV BROADCAST: \"[STATIC INTERRUPT] ...H-e-l-p... t-h-e-y... a-r-e... h-e-r-e...\"",
+            "TV BROADCAST: \"[EMERGENCY SIGNAL] ...D-o... n-o-t... t-r-u-s-t... t-h-e... w-a-l-l-s...\"",
+            "TV BROADCAST: \"[STATIC INTERRUPT] ...W-h-e-r-e... i-s... t-h-e... e-x-i-t...\"",
+            "TV BROADCAST: \"[ANOMALOUS TRANSMISSION] ...I-t... i-s... l-o-o-k-i-n-g... a-t... m-e...\""
           ];
           const sub = subtitles[logIdx % subtitles.length];
           setHudMessage(sub);
@@ -2248,51 +2249,70 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           mazeGroup.add(windowGroup);
         } else if (grid[x][z] === 10) {
           // Render a secret pocket chamber!
-          // We spawn a circular iron pedestal in the center, and place a special Golden Cassette Recorder on it!
+          // We spawn a circular iron pedestal in the center, and place a special Flickering CRT Television on it!
           const secretGroup = new THREE.Group();
           secretGroup.position.set(posX, 0, posZ);
           
           // Small steel pedestal
           const pedMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8, roughness: 0.15 });
-          const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.95, 12), pedMat);
+          const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.95, 12), pedMat);
           pedestal.position.y = 0.475;
           pedestal.castShadow = true; pedestal.receiveShadow = true;
           secretGroup.add(pedestal);
           
-          // Golden cassette recorder on top
-          const recorderGroup = new THREE.Group();
-          recorderGroup.position.set(0, 0.95, 0);
-          recorderGroup.rotation.y = Math.PI / 4;
+          // Flickering CRT Television on top
+          const tvGroup = new THREE.Group();
+          tvGroup.position.set(0, 0.95, 0);
+          tvGroup.rotation.y = Math.PI / 4;
           
-          const goldMat = new THREE.MeshStandardMaterial({ 
-            color: 0xffd700, 
-            metalness: 0.9, 
-            roughness: 0.15, 
-            emissive: 0x996600, 
-            emissiveIntensity: 0.3 
-          });
-          const recBody = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.12, 0.22), goldMat);
-          recBody.castShadow = true;
-          recorderGroup.add(recBody);
+          const tvBodyMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1c, roughness: 0.8 });
+          const tvBody = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.34, 0.32), tvBodyMat);
+          tvBody.position.y = 0.17;
+          tvBody.castShadow = true; tvBody.receiveShadow = true;
+          tvGroup.add(tvBody);
           
-          const recButton = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.04), new THREE.MeshStandardMaterial({ color: 0xd32f2f }));
-          recButton.position.set(-0.1, 0.06, 0.06);
-          recorderGroup.add(recButton);
+          const bezelMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9 });
+          const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.32, 0.02), bezelMat);
+          bezel.position.set(0, 0.17, 0.161);
+          tvGroup.add(bezel);
           
-          // Subtle localized glow light above the golden tape recorder
-          const glowLight = new THREE.PointLight(0xffcc00, 2.5, 3.5);
-          glowLight.position.set(0, 0.8, 0);
-          glowLight.castShadow = true;
-          recorderGroup.add(glowLight);
+          const crtScreenMat = new THREE.MeshBasicMaterial({ color: 0x88ccff });
+          const crtScreen = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.24, 0.02), crtScreenMat);
+          crtScreen.position.set(-0.04, 0.17, 0.168);
+          tvGroup.add(crtScreen);
+
+          const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6, roughness: 0.4 });
+          const knob1 = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.015, 12), knobMat);
+          knob1.rotation.x = Math.PI / 2;
+          knob1.position.set(0.14, 0.22, 0.17);
+          const knob2 = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.015, 12), knobMat);
+          knob2.rotation.x = Math.PI / 2;
+          knob2.position.set(0.14, 0.14, 0.17);
+          tvGroup.add(knob1, knob2);
+
+          const antMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.2 });
+          const ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.26, 6), antMat);
+          ant1.position.set(-0.06, 0.42, 0); ant1.rotation.z = Math.PI / 6;
+          const ant2 = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.26, 6), antMat);
+          ant2.position.set(0.06, 0.42, 0); ant2.rotation.z = -Math.PI / 6;
+          tvGroup.add(ant1, ant2);
           
-          secretGroup.add(recorderGroup);
+          // Localized flickering CRT blue-cyan light emission
+          const tvLight = new THREE.PointLight(0x70c8ff, 2.2, 4.0);
+          tvLight.position.set(0, 0.2, 0.3);
+          tvLight.castShadow = true;
+          tvGroup.add(tvLight);
+          
+          secretGroup.add(tvGroup);
           mazeGroup.add(secretGroup);
+
+          crtTVsRef.current.push({ screenMat: crtScreenMat, light: tvLight });
           
-          // Register this secret cassette recorder in our cassettes array!
+          // Register this secret broadcast in our cassettes array!
           cassettesRef.current.push({
-            mesh: recorderGroup,
+            mesh: tvGroup,
             played: false,
-            logIndex: 99 // Special index for the secret MEG noclip report
+            logIndex: 99
           });
         } else if (grid[x][z] === 0) {
           // Render theme-specific floor and wall props inside walkable corridors
@@ -2740,38 +2760,55 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
                     deskGroup.add(compGroup);
                   }
 
-                  // 35% chance to spawn cassette recorder on desk top
-                  const spawnCassette = Math.abs(Math.sin(x * 12.34 + z * 98.76) * 100) % 1 < 0.35;
-                  if (spawnCassette) {
-                    const cassetteGroup = new THREE.Group();
-                    const cBaseMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.5 });
-                    const cGlassMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.2, transparent: true, opacity: 0.7 });
-                    const cRedMat = new THREE.MeshStandardMaterial({ color: 0xc62828, roughness: 0.6 });
-
-                    const cBody = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.05, 0.12), cBaseMat);
-                    cBody.position.y = 0.025;
-                    cBody.castShadow = true; cBody.receiveShadow = true;
-                    cassetteGroup.add(cBody);
-
-                    const cWindow = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.002, 0.04), cGlassMat);
-                    cWindow.position.set(-0.02, 0.051, 0);
-                    cWindow.castShadow = true; cWindow.receiveShadow = true;
-                    cassetteGroup.add(cWindow);
-
-                    const cRecBtn = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.01, 0.02), cRedMat);
-                    cRecBtn.position.set(0.06, 0.051, 0.03);
-                    cRecBtn.castShadow = true; cRecBtn.receiveShadow = true;
-                    cassetteGroup.add(cRecBtn);
-
-                    // Place on left side of the desk
-                    cassetteGroup.position.set(-0.35, 0.70, -0.15);
-                    cassetteGroup.rotation.y = Math.PI / 6;
+                  // 35% chance to spawn Flickering CRT Television on desk top
+                  const spawnTV = Math.abs(Math.sin(x * 12.34 + z * 98.76) * 100) % 1 < 0.35;
+                  if (spawnTV) {
+                    const tvGroup = new THREE.Group();
                     
-                    deskGroup.add(cassetteGroup);
+                    const tvBodyMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.8 });
+                    const tvBody = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.22), tvBodyMat);
+                    tvBody.position.y = 0.12;
+                    tvBody.castShadow = true; tvBody.receiveShadow = true;
+                    tvGroup.add(tvBody);
 
-                    // Track it
+                    const bezelMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.9 });
+                    const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.22, 0.015), bezelMat);
+                    bezel.position.set(0, 0.12, 0.111);
+                    tvGroup.add(bezel);
+
+                    const crtScreenMat = new THREE.MeshBasicMaterial({ color: 0x88ccff });
+                    const crtScreen = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.17, 0.015), crtScreenMat);
+                    crtScreen.position.set(-0.03, 0.12, 0.118);
+                    tvGroup.add(crtScreen);
+
+                    const knobMat = new THREE.MeshStandardMaterial({ color: 0x333333, metalness: 0.6 });
+                    const knob = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.012, 0.01, 10), knobMat);
+                    knob.rotation.x = Math.PI / 2;
+                    knob.position.set(0.10, 0.14, 0.12);
+                    tvGroup.add(knob);
+
+                    const antMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9 });
+                    const ant1 = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.2, 6), antMat);
+                    ant1.position.set(-0.04, 0.3, 0); ant1.rotation.z = Math.PI / 6;
+                    const ant2 = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.2, 6), antMat);
+                    ant2.position.set(0.04, 0.3, 0); ant2.rotation.z = -Math.PI / 6;
+                    tvGroup.add(ant1, ant2);
+
+                    const tvLight = new THREE.PointLight(0x70c8ff, 1.8, 3.5);
+                    tvLight.position.set(0, 0.12, 0.2);
+                    tvGroup.add(tvLight);
+
+                    // Place on left side of desk
+                    tvGroup.position.set(-0.35, 0.70, -0.15);
+                    tvGroup.rotation.y = Math.PI / 6;
+                    
+                    deskGroup.add(tvGroup);
+
+                    crtTVsRef.current.push({ screenMat: crtScreenMat, light: tvLight });
+
+                    // Track it for interaction
                     cassettesRef.current.push({
-                      mesh: cassetteGroup,
+                      mesh: tvGroup,
                       played: false,
                       logIndex: Math.floor(Math.abs(Math.sin(x * 45.67 + z * 89.12) * 100)) % 4
                     });
@@ -3143,6 +3180,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const spawnProps = () => {
       breakablesRef.current = [];
       cassettesRef.current = [];
+      crtTVsRef.current = [];
       sparkEmittersRef.current = [];
       const metalMaterial = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.8, roughness: 0.3 });
       
@@ -4545,7 +4583,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       if (nearestItem) {
         setHudMessage(`PROXIMITY DETECTED: [${nearestItem.name.toUpperCase()}] - PRESS [E] OR CLICK TO SEARCH`);
       } else if (nearestCassette) {
-        setHudMessage(nearestCassette.played ? 'PROXIMITY: [CASSETTE DIARY] - PRESS [E] TO REPLAY AUDIO LOG' : 'PROXIMITY: [CASSETTE DIARY] - PRESS [E] TO PLAY AUDIO LOG');
+        setHudMessage(nearestCassette.played ? 'PROXIMITY: [FLICKERING CRT TELEVISION] - PRESS [E] TO REPLAY BROADCAST' : 'PROXIMITY: [FLICKERING CRT TELEVISION] - PRESS [E] TO VIEW BROADCAST');
       } else if (nearestDoor) {
         setHudMessage(`PROXIMITY DETECTED: [WOODEN DOOR] - PRESS [E] OR CLICK TO SWING ${nearestDoor.isOpen ? 'CLOSE' : 'OPEN'}`);
       } else if (nearestStairs) {
@@ -5021,6 +5059,18 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
  
+      // Dynamic CRT TV screen flicker animation
+      if (crtTVsRef.current.length > 0) {
+        for (let i = 0; i < crtTVsRef.current.length; i++) {
+          const tv = crtTVsRef.current[i];
+          if (Math.random() < 0.45) {
+            tv.light.intensity = 1.0 + Math.random() * 2.0;
+            const flickerColor = Math.random() > 0.2 ? 0x70c8ff : 0xd0eeff;
+            tv.screenMat.color.setHex(flickerColor);
+          }
+        }
+      }
+
       renderer.render(scene, camera);
       animationFrameId = requestAnimationFrame(loop);
     };
