@@ -1226,14 +1226,17 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     }
     cameraRef.current = camera;
 
+    // Detect mobile device for thermal management optimizations
+    const isMobileDevice = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 1024;
+
     // WebGL Renderer
     const renderer = new THREE.WebGLRenderer({
       canvas: canvasRef.current,
-      antialias: true,
-      powerPreference: 'high-performance',
+      antialias: !isMobileDevice,
+      powerPreference: isMobileDevice ? 'default' : 'high-performance',
     });
     renderer.setSize(containerRef.current.clientWidth, containerRef.current.clientHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobileDevice ? 1.25 : 2.0));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -3115,8 +3118,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       sunLight = new THREE.DirectionalLight(0xfffce0, 1.8);
       sunLight.position.set(20, 45, 10);
       sunLight.castShadow = true;
-      sunLight.shadow.mapSize.width = 1024;
-      sunLight.shadow.mapSize.height = 1024;
+      const mapSize = isMobileDevice ? 512 : 1024;
+      sunLight.shadow.mapSize.width = mapSize;
+      sunLight.shadow.mapSize.height = mapSize;
       sunLight.shadow.camera.near = 0.5;
       sunLight.shadow.camera.far = 80;
       const d = 16;
@@ -4181,12 +4185,29 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     // 10. Frame Loop & Player Physics/Update
     let animationFrameId: number;
     let lastTime = performance.now();
+    let lastRenderTime = performance.now();
     let clockStart = performance.now();
     let stepTimer = 0;
     let lastSplashTime = 0;
 
+    const targetFrameTime = isMobileDevice ? 1000 / 30 : 1000 / 60; // 30 FPS cap on mobile to prevent phone heating
+
     const loop = () => {
+      // Auto-Pause Thermal Sleep: stop GPU/CPU rendering when tab is hidden or phone screen is locked
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(loop);
+        return;
+      }
+
       const currentTime = performance.now();
+      
+      // Enforce frame rate cap on mobile devices
+      if (isMobileDevice && (currentTime - lastRenderTime < targetFrameTime - 2.0)) {
+        animationFrameId = requestAnimationFrame(loop);
+        return;
+      }
+      lastRenderTime = currentTime;
+
       const delta = Math.min((currentTime - lastTime) / 1000, 0.1); // cap delta lag
       lastTime = currentTime;
       const elapsedTime = (currentTime - clockStart) / 1000;
