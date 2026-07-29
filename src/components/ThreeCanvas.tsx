@@ -90,6 +90,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const cassettesRef = useRef<{ mesh: THREE.Group; played: boolean; logIndex: number }[]>([]);
   const crtTVsRef = useRef<{ screenMat: THREE.MeshBasicMaterial; light: THREE.PointLight }[]>([]);
   const lastTVBroadcastTimeRef = useRef<number>(0);
+  const almondMilksRef = useRef<{ mesh: THREE.Group; gridX: number; gridZ: number }[]>([]);
   const sparkEmittersRef = useRef<THREE.Vector3[]>([]);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
 
@@ -3177,13 +3178,83 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     scene.add(flashlight);
     flashlightRef.current = flashlight;
 
+    const createAlmondMilkMesh = () => {
+      const milkGroup = new THREE.Group();
+
+      // Outer Glass Bottle (Taller & 1.5x Larger)
+      const bottleMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.1,
+        transmission: 0.85,
+        thickness: 0.15,
+        transparent: true,
+        opacity: 0.9
+      });
+      const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.45, 14), bottleMat);
+      bottle.position.y = 0.225;
+      bottle.castShadow = true; bottle.receiveShadow = true;
+
+      // Liquid Inside (Cloudy Glowing Almond Milk)
+      const milkLiquidMat = new THREE.MeshStandardMaterial({
+        color: 0xfff8e7,
+        roughness: 0.3,
+        emissive: 0x887755,
+        emissiveIntensity: 0.5
+      });
+      const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.36, 14), milkLiquidMat);
+      liquid.position.y = 0.18;
+
+      // Blue Sealed Cap
+      const capMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.2, metalness: 0.6 });
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.06, 14), capMat);
+      cap.position.y = 0.46;
+
+      // Vintage Label ("ALMOND MILK")
+      const labelMat = new THREE.MeshStandardMaterial({ color: 0xeedcb3, roughness: 0.6 });
+      const label = new THREE.Mesh(new THREE.CylinderGeometry(0.141, 0.141, 0.16, 14), labelMat);
+      label.position.y = 0.225;
+
+      // Bright Glowing Golden Aura Light around bottle
+      const milkLight = new THREE.PointLight(0xffe8b0, 4.5, 8.5);
+      milkLight.position.set(0, 0.3, 0);
+
+      milkGroup.add(bottle, liquid, cap, label, milkLight);
+      return milkGroup;
+    };
+
     // 7. Spawn Theme Specific Props (Pipes, Cabinets, Lockers, Water puddles)
     const spawnProps = () => {
       breakablesRef.current = [];
       cassettesRef.current = [];
       crtTVsRef.current = [];
+      almondMilksRef.current = [];
       sparkEmittersRef.current = [];
       const metalMaterial = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.8, roughness: 0.3 });
+
+      // Scatter 10 waist-high glowing Almond Milk bottles throughout walkable corridor tiles
+      let milkSpawned = 0;
+      for (let attempt = 0; attempt < 120 && milkSpawned < 10; attempt++) {
+        const rx = Math.floor((Math.abs(Math.sin(attempt * 13.37 + levelSeed * 4.2)) % 1) * MAP_SIZE);
+        const rz = Math.floor((Math.abs(Math.sin(attempt * 31.73 + levelSeed * 8.1)) % 1) * MAP_SIZE);
+
+        if (grid[rx]?.[rz] === 0) {
+          const offX = ((Math.abs(Math.sin(attempt * 9.1)) % 1) - 0.5) * 2.0;
+          const offZ = ((Math.abs(Math.sin(attempt * 14.3)) % 1) - 0.5) * 2.0;
+
+          const milkMesh = createAlmondMilkMesh();
+          const posX = rx * CELL_SIZE + offX;
+          const posZ = rz * CELL_SIZE + offZ;
+          milkMesh.position.set(posX, 0.55, posZ);
+          mazeGroup.add(milkMesh);
+
+          almondMilksRef.current.push({
+            mesh: milkMesh,
+            gridX: rx,
+            gridZ: rz
+          });
+          milkSpawned++;
+        }
+      }
       
       if (theme.props.includes('pipe')) {
         // Exposed pipes running along ceiling corridors
@@ -4586,6 +4657,32 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
+      // Safe 3D Almond Milk Grid Cell Proximity Check
+      let isNearMilk = false;
+      if (almondMilksRef.current && almondMilksRef.current.length > 0) {
+        const playerGridX = Math.round(camera.position.x / CELL_SIZE);
+        const playerGridZ = Math.round(camera.position.z / CELL_SIZE);
+        let foundMilk = null;
+
+        for (let i = 0; i < almondMilksRef.current.length; i++) {
+          const milk = almondMilksRef.current[i];
+          if (milk && milk.gridX === playerGridX && milk.gridZ === playerGridZ) {
+            foundMilk = milk;
+            break;
+          }
+        }
+
+        if (foundMilk) {
+          Synthesizer.triggerDrinkSound();
+          window.dispatchEvent(new CustomEvent('DRINK_ALMOND_MILK'));
+          if (foundMilk.mesh && foundMilk.mesh.parent) {
+            foundMilk.mesh.parent.remove(foundMilk.mesh);
+          }
+          almondMilksRef.current = almondMilksRef.current.filter(m => m !== foundMilk);
+          isNearMilk = true;
+        }
+      }
+
       // Update item state
       if (nearestItem !== activeItemNear) {
         setActiveItemNear(nearestItem);
@@ -4597,7 +4694,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       }
 
       // Coordinate HUD Messages
-      if (nearestItem) {
+      if (isNearMilk) {
+        setHudMessage('DRANK ALMOND MILK! (+35% SANITY RESTORED)');
+      } else if (nearestItem) {
         setHudMessage(`PROXIMITY DETECTED: [${nearestItem.name.toUpperCase()}] - PRESS [E] OR CLICK TO SEARCH`);
       } else if (nearestDoor) {
         setHudMessage(`PROXIMITY DETECTED: [WOODEN DOOR] - PRESS [E] OR CLICK TO SWING ${nearestDoor.isOpen ? 'CLOSE' : 'OPEN'}`);
