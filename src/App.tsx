@@ -3,6 +3,7 @@ import { Shield, Volume2, VolumeX, Terminal, Database } from 'lucide-react';
 import { ThreeCanvas } from './components/ThreeCanvas';
 import { TerminalUI } from './components/TerminalUI';
 import { WikiDossier } from './components/WikiDossier';
+import { SanityHUD } from './components/SanityHUD';
 import { parseKeywords, expandKeywordsWithDictionary } from './generator/ThemeParser';
 import Synthesizer from './audio/Synthesizer';
 import type { RoomTheme, LevelDossier, SearchableItem } from './types';
@@ -39,7 +40,6 @@ export default function App() {
   const [soundOn, setSoundOn] = useState(true);
   const [volume, setVolume] = useState(0.4);
   const [entityDistance, setEntityDistance] = useState(999.0);
-  const [isSanityActive, setIsSanityActive] = useState(false);
 
   const [isDead, setIsDead] = useState(false);
 
@@ -85,7 +85,6 @@ export default function App() {
   const handleSynthesis = async (query: string) => {
     setIsLoading(true);
     setShowSplash(true);
-    setIsSanityActive(false);
     setKeywords(query);
     setSearchQuery(query);
 
@@ -108,11 +107,6 @@ export default function App() {
       }
       setIsLoading(false);
       setShowSplash(false);
-
-      // Activate Sanity Meter 10 seconds AFTER level is fully loaded & visible!
-      setTimeout(() => {
-        setIsSanityActive(true);
-      }, 10000);
     }, 2500);
   };
 
@@ -288,6 +282,12 @@ export default function App() {
         </div>
       )}
       
+      {/* Completely Isolated Sanity HUD Overlay */}
+      <SanityHUD 
+        isLevelLoaded={!isLoading && !showSplash} 
+        onPlayerDeath={handlePlayerDeath} 
+      />
+
       {/* 3D Viewport - Fullscreen Background */}
       <div className="absolute inset-0 w-full h-full z-0">
         {theme && (
@@ -300,7 +300,6 @@ export default function App() {
             setEntityDistance={setEntityDistance}
             onLevelTransition={handleLevelTransition}
             onPlayerDeath={handlePlayerDeath}
-            isSanityActive={isSanityActive}
           />
         )}
         
