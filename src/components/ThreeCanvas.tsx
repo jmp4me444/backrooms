@@ -89,6 +89,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const steamParticlesRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; life: number; maxLife: number; ox: number; oy: number; oz: number }[]>([]);
   const cassettesRef = useRef<{ mesh: THREE.Group; played: boolean; logIndex: number }[]>([]);
   const crtTVsRef = useRef<{ screenMat: THREE.MeshBasicMaterial; light: THREE.PointLight }[]>([]);
+  const lastTVBroadcastTimeRef = useRef<number>(0);
   const sparkEmittersRef = useRef<THREE.Vector3[]>([]);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
 
@@ -4551,16 +4552,37 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // Cassette proximity detection
-      let nearestCassette = null;
-      let minCassetteDist = 2.0;
+      // Continuous CRT TV Broadcast Proximity & Auto-Play
+      let nearestTV = null;
+      let minTVDist = 6.0;
       for (let c of cassettesRef.current) {
         const cPos = new THREE.Vector3();
         c.mesh.getWorldPosition(cPos);
         const dist = camera.position.distanceTo(cPos);
-        if (dist < minCassetteDist) {
-          minCassetteDist = dist;
-          nearestCassette = c;
+        if (dist < minTVDist) {
+          minTVDist = dist;
+          nearestTV = c;
+        }
+      }
+
+      if (nearestTV) {
+        const now = performance.now();
+        if (now - lastTVBroadcastTimeRef.current > 3500) {
+          lastTVBroadcastTimeRef.current = now;
+          const logIdx = nearestTV.logIndex;
+          if (logIdx === 99) {
+            Synthesizer.triggerTapeAudioLog(2);
+            setHudMessage("LIVE TV BROADCAST: \"ASYNC BROADCAST: No-clipped through drywall... Pocket dimension seems stable... Do not trust windows...\"");
+          } else {
+            Synthesizer.triggerTapeAudioLog(logIdx);
+            const subtitles = [
+              "LIVE TV BROADCAST: \"[STATIC INTERRUPT] ...H-e-l-p... t-h-e-y... a-r-e... h-e-r-e...\"",
+              "LIVE TV BROADCAST: \"[EMERGENCY SIGNAL] ...D-o... n-o-t... t-r-u-s-t... t-h-e... w-a-l-l-s...\"",
+              "LIVE TV BROADCAST: \"[STATIC INTERRUPT] ...W-h-e-r-e... i-s... t-h-e... e-x-i-t...\"",
+              "LIVE TV BROADCAST: \"[ANOMALOUS TRANSMISSION] ...I-t... i-s... l-o-o-k-i-n-g... a-t... m-e...\""
+            ];
+            setHudMessage(subtitles[logIdx % subtitles.length]);
+          }
         }
       }
 
@@ -4574,21 +4596,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         setActiveDoorNear(nearestDoor);
       }
 
-      // Update cassette state
-      if (nearestCassette !== activeCassetteNear) {
-        setActiveCassetteNear(nearestCassette);
-      }
-
       // Coordinate HUD Messages
       if (nearestItem) {
         setHudMessage(`PROXIMITY DETECTED: [${nearestItem.name.toUpperCase()}] - PRESS [E] OR CLICK TO SEARCH`);
-      } else if (nearestCassette) {
-        setHudMessage(nearestCassette.played ? 'PROXIMITY: [FLICKERING CRT TELEVISION] - PRESS [E] TO REPLAY BROADCAST' : 'PROXIMITY: [FLICKERING CRT TELEVISION] - PRESS [E] TO VIEW BROADCAST');
       } else if (nearestDoor) {
         setHudMessage(`PROXIMITY DETECTED: [WOODEN DOOR] - PRESS [E] OR CLICK TO SWING ${nearestDoor.isOpen ? 'CLOSE' : 'OPEN'}`);
       } else if (nearestStairs) {
         setHudMessage('PROXIMITY DETECTED: [STAIRS] - WALK ONTO STAIRS TO ASCEND TO NEXT LEVEL');
-      } else {
+      } else if (!nearestTV) {
         setHudMessage('USE WASD / ARROWS TO MOVE. DRAG SCREEN TO LOOK.');
       }
 
