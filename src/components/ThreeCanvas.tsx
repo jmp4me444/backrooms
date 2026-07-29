@@ -4650,10 +4650,12 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           }
           Synthesizer.stopSiren();
 
-          if (uData.appearCooldown <= 0) {
+          const px = Math.round(camera.position.x / CELL_SIZE);
+          const pz = Math.round(camera.position.z / CELL_SIZE);
+          const isInSafeZone = px >= 0 && px < MAP_SIZE && pz >= 0 && pz < MAP_SIZE && (grid[px]?.[pz] === 4 || grid[px]?.[pz] === 11);
+
+          if (uData.appearCooldown <= 0 && !isInSafeZone) {
             // Find a walkable corridor cell with straight line of sight to spawn the monster
-            const px = Math.round(camera.position.x / CELL_SIZE);
-            const pz = Math.round(camera.position.z / CELL_SIZE);
             let candidates: { x: number; z: number }[] = [];
 
             // 1. Try to find a straight corridor with clear line of sight in 4 directions
@@ -4729,18 +4731,21 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             ambientLightRef.current.color.copy(themeColor).lerp(alertColor, 0.85);
           }
 
-          // Safe Zone: If player is climbing stairs, instantly dissolve the monster to prevent cheap transition deaths
+          // Safe Zone Check: Stairs (grid 4) & Glitched Secret TV Room (grid 11)
           const checkPx = Math.round(camera.position.x / CELL_SIZE);
           const checkPz = Math.round(camera.position.z / CELL_SIZE);
-          const isPlayerOnStairs = checkPx >= 0 && checkPx < MAP_SIZE && checkPz >= 0 && checkPz < MAP_SIZE && grid[checkPx][checkPz] === 4;
-          if (isPlayerOnStairs) {
+          const isPlayerOnStairs = checkPx >= 0 && checkPx < MAP_SIZE && checkPz >= 0 && checkPz < MAP_SIZE && grid[checkPx]?.[checkPz] === 4;
+          const isPlayerInSecretRoom = checkPx >= 0 && checkPx < MAP_SIZE && checkPz >= 0 && checkPz < MAP_SIZE && grid[checkPx]?.[checkPz] === 11;
+
+          // Safe Zone: If player is on stairs or inside the secret TV room, instantly dissolve the monster
+          if (isPlayerOnStairs || isPlayerInSecretRoom) {
             ent.visible = false;
             uData.isChasing = false;
             uData.leftLeg.rotation.set(0, 0, 0);
             uData.rightLeg.rotation.set(0, 0, 0);
             uData.leftArm.rotation.set(0, 0, 0);
             uData.rightArm.rotation.set(0, 0, 0);
-            uData.appearCooldown = 20.0 + Math.random() * 25.0;
+            uData.appearCooldown = 25.0 + Math.random() * 25.0;
             monsterCooldownRef.current = uData.appearCooldown;
             setEntityDistance(999.0);
             Synthesizer.stopSiren();
@@ -4749,11 +4754,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           // Make the entity face the player (billboard orientation)
           ent.lookAt(camera.position.x, entPos.y, camera.position.z);
 
-          // Move the entity towards the player at chase speed
-          const dir = new THREE.Vector3().subVectors(camera.position, entPos);
-          dir.y = 0;
-          dir.normalize();
-          entPos.add(dir.multiplyScalar(2.2 * delta));
+          // Move the entity towards the player at chase speed (only if not in safe zone)
+          if (!isPlayerOnStairs && !isPlayerInSecretRoom) {
+            const dir = new THREE.Vector3().subVectors(camera.position, entPos);
+            dir.y = 0;
+            dir.normalize();
+            entPos.add(dir.multiplyScalar(2.2 * delta));
+          }
 
           // Swing limbs creepily during the chase!
           const swingSpeed = 15;
@@ -4767,14 +4774,14 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           uData.rightArm.rotation.z = 0.35 - Math.sin(elapsedTime * 5) * 0.15;
 
           // Eerie glitch static sounds when nearby
-          if (distToPlayer < 8.0) {
+          if (distToPlayer < 8.0 && !isPlayerInSecretRoom && !isPlayerOnStairs) {
             if (Math.random() > 0.97 - (8.0 - distToPlayer) * 0.015) {
               Synthesizer.triggerEntityGlitch();
             }
           }
 
-          // Touch player check: trigger death sequence when wire monster gets within 0.95 meters
-          if (distToPlayer < 0.95) {
+          // Touch player check: trigger death sequence when wire monster gets within 0.95 meters (only outside safe zones)
+          if (distToPlayer < 0.95 && !isPlayerOnStairs && !isPlayerInSecretRoom) {
             // Reset persistent spawn timer on player death to at least 30-45 seconds at next level spawn
             monsterCooldownRef.current = 30.0 + Math.random() * 15.0;
             if (onPlayerDeath) {
