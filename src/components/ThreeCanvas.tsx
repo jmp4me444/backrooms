@@ -6,6 +6,8 @@ import { EyeOff, Radio, Compass } from 'lucide-react';
 
 import Synthesizer from '../audio/Synthesizer';
 import VHSOverlay from './VHSOverlay';
+import { SwitchGamepad } from '../input/GamepadManager';
+import SwitchControlsHUD from './SwitchControlsHUD';
 
 interface ThreeCanvasProps {
   theme: RoomTheme;
@@ -51,6 +53,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     noclipRef.current = noclipMode;
   }, [noclipMode]);
   const [playerPos, setPlayerPos] = useState<{ x: number; z: number }>({ x: 0, z: 0 });
+  const [switchController, setSwitchController] = useState<{ connected: boolean; name: string }>({ connected: false, name: '' });
  
   // Refs for animation loop & input tracking
   const keysRef = useRef<{ [key: string]: boolean }>({});
@@ -4219,6 +4222,29 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         mouseRef.current.pitch -= (joyRightOffset.current.y / 30) * lookSpeed * delta;
       }
 
+      // Poll Nintendo Switch Joy-Con / Gamepad inputs
+      const pad = SwitchGamepad.poll();
+      if (pad.connected) {
+        if (!switchController.connected || switchController.name !== pad.name) {
+          setSwitchController({ connected: true, name: pad.name });
+        }
+        
+        // Right Analog Stick Camera Look
+        const stickLookSpeed = 2.2;
+        mouseRef.current.yaw -= pad.lookYaw * stickLookSpeed * delta;
+        mouseRef.current.pitch -= pad.lookPitch * stickLookSpeed * delta;
+
+        // Controller Button Triggers
+        if (pad.hammerPressed) {
+          triggerHammerSwing();
+        }
+        if (pad.flashlightPressed) {
+          setFlashlightOn(prev => !prev);
+        }
+      } else if (switchController.connected) {
+        setSwitchController({ connected: false, name: '' });
+      }
+
       // Apply discrete Look Button rotation
       const buttonLookSpeed = 1.5; // rad/sec
       if (lookKeysRef.current.left) mouseRef.current.yaw += buttonLookSpeed * delta;
@@ -4234,7 +4260,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       camera.rotation.y = mouseRef.current.yaw;
       camera.rotation.x = mouseRef.current.pitch;
 
-      // Handle keyboard walking (pitch-independent horizontal walking using camera yaw)
+      // Handle keyboard & gamepad walking (pitch-independent horizontal walking using camera yaw)
       const speed = 3.5;
       const moveVector = new THREE.Vector3(0, 0, 0);
 
@@ -4245,6 +4271,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (keysRef.current['s'] || keysRef.current['arrowdown']) verticalMove.z += 1;
         if (keysRef.current['a'] || keysRef.current['arrowleft']) verticalMove.x -= 1;
         if (keysRef.current['d'] || keysRef.current['arrowright']) verticalMove.x += 1;
+        if (pad.connected) {
+          verticalMove.z += pad.moveZ;
+          verticalMove.x += pad.moveX;
+        }
         verticalMove.normalize();
         verticalMove.applyQuaternion(camera.quaternion);
         moveVector.copy(verticalMove);
@@ -4257,6 +4287,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         if (keysRef.current['s'] || keysRef.current['arrowdown']) moveVector.add(forward.clone().negate());
         if (keysRef.current['a'] || keysRef.current['arrowleft']) moveVector.add(right.clone().negate());
         if (keysRef.current['d'] || keysRef.current['arrowright']) moveVector.add(right);
+
+        // Nintendo Switch Left Analog Stick Movement
+        if (pad.connected && (Math.abs(pad.moveX) > 0.05 || Math.abs(pad.moveZ) > 0.05)) {
+          moveVector.add(forward.clone().multiplyScalar(-pad.moveZ));
+          moveVector.add(right.clone().multiplyScalar(pad.moveX));
+        }
+
         moveVector.normalize();
       }
 
@@ -5332,6 +5369,10 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
 
       {/* Render Mobile Touch Controls via React Portal directly into document.body to guarantee 100% bottom-left & bottom-right viewport positioning on iOS/Android */}
+      {switchController.connected && (
+        <SwitchControlsHUD controllerName={switchController.name} />
+      )}
+
       {createPortal(
         <div className="mobile-touch-controls-root">
           {/* Bottom-Left Directional Movement Controller (Mobile) */}

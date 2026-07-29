@@ -1,0 +1,19 @@
+{
+  "name": "M.E.G. Backrooms Explorer - Nintendo Switch Edition",
+  "short_name": "Backrooms Switch",
+  "description": "3D Backrooms level synthesizer optimized for Nintendo Switch Joy-Con & Pro Controllers.",
+  "version": "1.0.0",
+  "platform": "nintendo-switch",
+  "orientation": "landscape",
+  "display": "fullscreen",
+  "background_color": "#000000",
+  "theme_color": "#10b981",
+  "switch_settings": {
+    "supported_controllers": ["JoyConPair", "ProController", "HandheldJoyCon"],
+    "docked_resolution": "1920x1080",
+    "handheld_resolution": "1280x720",
+    "target_fps": 60,
+    "web_audio": true,
+    "webgl2": true
+  }
+}
