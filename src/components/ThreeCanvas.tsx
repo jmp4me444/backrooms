@@ -3181,42 +3181,42 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const createAlmondMilkMesh = () => {
       const milkGroup = new THREE.Group();
 
-      // Outer Glass Bottle
+      // Outer Glass Bottle (Taller & 1.5x Larger)
       const bottleMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         roughness: 0.1,
         transmission: 0.85,
         thickness: 0.15,
         transparent: true,
-        opacity: 0.85
+        opacity: 0.9
       });
-      const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.28, 12), bottleMat);
-      bottle.position.y = 0.14;
+      const bottle = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 0.45, 14), bottleMat);
+      bottle.position.y = 0.225;
       bottle.castShadow = true; bottle.receiveShadow = true;
 
-      // Liquid Inside (Cloudy Almond Milk)
+      // Liquid Inside (Cloudy Glowing Almond Milk)
       const milkLiquidMat = new THREE.MeshStandardMaterial({
         color: 0xfff8e7,
-        roughness: 0.4,
-        emissive: 0x443a2c,
-        emissiveIntensity: 0.25
+        roughness: 0.3,
+        emissive: 0x887755,
+        emissiveIntensity: 0.5
       });
-      const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.085, 0.22, 12), milkLiquidMat);
-      liquid.position.y = 0.11;
+      const liquid = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.14, 0.36, 14), milkLiquidMat);
+      liquid.position.y = 0.18;
 
       // Blue Sealed Cap
-      const capMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.3, metalness: 0.5 });
-      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.04, 12), capMat);
-      cap.position.y = 0.29;
+      const capMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.2, metalness: 0.6 });
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.06, 14), capMat);
+      cap.position.y = 0.46;
 
       // Vintage Label ("ALMOND MILK")
-      const labelMat = new THREE.MeshStandardMaterial({ color: 0xeedcb3, roughness: 0.7 });
-      const label = new THREE.Mesh(new THREE.CylinderGeometry(0.081, 0.081, 0.1, 12), labelMat);
-      label.position.y = 0.14;
+      const labelMat = new THREE.MeshStandardMaterial({ color: 0xeedcb3, roughness: 0.6 });
+      const label = new THREE.Mesh(new THREE.CylinderGeometry(0.141, 0.141, 0.16, 14), labelMat);
+      label.position.y = 0.225;
 
-      // Soft glowing light around bottle
-      const milkLight = new THREE.PointLight(0xfff5e6, 1.8, 3.5);
-      milkLight.position.set(0, 0.2, 0);
+      // Bright Glowing Golden Aura Light around bottle
+      const milkLight = new THREE.PointLight(0xffe8b0, 4.5, 8.5);
+      milkLight.position.set(0, 0.3, 0);
 
       milkGroup.add(bottle, liquid, cap, label, milkLight);
       return milkGroup;
@@ -3231,9 +3231,9 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       sparkEmittersRef.current = [];
       const metalMaterial = new THREE.MeshStandardMaterial({ color: '#555555', metalness: 0.8, roughness: 0.3 });
 
-      // Scatter exactly 10 Almond Milk bottles randomly throughout walkable corridor tiles
+      // Scatter 15 waist-high floating Almond Milk bottles throughout walkable corridor tiles
       let milkSpawned = 0;
-      for (let attempt = 0; attempt < 120 && milkSpawned < 10; attempt++) {
+      for (let attempt = 0; attempt < 180 && milkSpawned < 15; attempt++) {
         const rx = Math.floor((Math.abs(Math.sin(attempt * 13.37 + levelSeed * 4.2)) % 1) * MAP_SIZE);
         const rz = Math.floor((Math.abs(Math.sin(attempt * 31.73 + levelSeed * 8.1)) % 1) * MAP_SIZE);
 
@@ -3244,7 +3244,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           const milkMesh = createAlmondMilkMesh();
           const posX = rx * CELL_SIZE + offX;
           const posZ = rz * CELL_SIZE + offZ;
-          milkMesh.position.set(posX, 0, posZ);
+          milkMesh.position.set(posX, 0.55, posZ);
           mazeGroup.add(milkMesh);
 
           almondMilksRef.current.push({
@@ -4663,6 +4663,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       for (let i = 0; i < almondMilksRef.current.length; i++) {
         const milk = almondMilksRef.current[i];
         if (!milk || !milk.mesh || !milk.mesh.parent) continue;
+
+        // Gentle spinning and floating hover animation so bottles stand out brightly
+        milk.mesh.rotation.y += delta * 1.5;
+        milk.mesh.position.y = 0.55 + Math.sin(elapsedTime * 3 + i) * 0.08;
+
         const dx = camera.position.x - milk.x;
         const dz = camera.position.z - milk.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
