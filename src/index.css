@@ -152,14 +152,14 @@ html, body {
 
 /* Touch screen joystick styling (Bottom Left corner) */
 .touch-joystick-base {
-  position: absolute !important;
-  bottom: 24px !important;
-  left: 24px !important; /* bottom-left */
-  z-index: 40 !important;
-  width: 90px !important;
-  height: 90px !important;
+  position: fixed !important;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  left: 16px !important; /* pinned bottom-left */
+  z-index: 9999 !important;
+  width: 96px !important;
+  height: 96px !important;
   border-radius: 9999px !important;
-  border: 2px solid rgba(16, 185, 129, 0.6) !important;
+  border: 2px solid rgba(16, 185, 129, 0.7) !important;
   background-color: rgba(0, 0, 0, 0.75) !important;
   backdrop-filter: blur(6px) !important;
   display: flex !important;
@@ -167,7 +167,7 @@ html, body {
   justify-content: center !important;
   user-select: none !important;
   touch-action: none !important;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3) !important;
 }
 
 /* Hide on desktop screens (>= 1024px width) */
@@ -178,8 +178,8 @@ html, body {
 }
 
 .touch-joystick-knob {
-  width: 36px !important;
-  height: 36px !important;
+  width: 38px !important;
+  height: 38px !important;
   border-radius: 9999px !important;
   background-color: rgba(16, 185, 129, 0.55) !important;
   border: 1.5px solid rgba(16, 185, 129, 0.85) !important;
@@ -210,14 +210,14 @@ canvas {
 
 /* Touch screen hammer button styling (Bottom Right corner) */
 .touch-hammer-btn {
-  position: absolute !important;
-  bottom: 24px !important;
-  right: 24px !important; /* bottom-right */
-  z-index: 40 !important;
-  width: 76px !important;
-  height: 76px !important;
+  position: fixed !important;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
+  right: 16px !important; /* pinned bottom-right */
+  z-index: 9999 !important;
+  width: 80px !important;
+  height: 80px !important;
   border-radius: 9999px !important;
-  border: 2px solid rgba(16, 185, 129, 0.65) !important;
+  border: 2px solid rgba(16, 185, 129, 0.75) !important;
   background-color: rgba(0, 0, 0, 0.75) !important;
   backdrop-filter: blur(6px) !important;
   display: flex !important;
@@ -228,7 +228,7 @@ canvas {
   user-select: none !important;
   touch-action: none !important;
   cursor: pointer !important;
-  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.35) !important;
   transition: transform 0.1s ease !important;
 }
 
