@@ -210,43 +210,15 @@ class SoundSynthesizer {
     lfo.start();
     this.activeNodes.push(lfo);
 
-    // Add a periodic volume sputter/flicker
+    // Subtle 15Hz volume texture flutter
     const volumeLfo = ctx.createOscillator();
     const volumeLfoGain = ctx.createGain();
     volumeLfo.frequency.setValueAtTime(15, ctx.currentTime);
-    volumeLfoGain.gain.setValueAtTime(0.06, ctx.currentTime); // slightly deeper flutter
+    volumeLfoGain.gain.setValueAtTime(0.02, ctx.currentTime); // smooth subtle texture
     volumeLfo.connect(volumeLfoGain);
     volumeLfoGain.connect(this.humGain.gain);
     volumeLfo.start();
     this.activeNodes.push(volumeLfo);
-
-    // Recursive random sputter/flicker simulating a light about to go out
-    const triggerFlicker = () => {
-      // Check if we are still active and playing
-      if (this.currentSoundType === 'none' || !this.humGain) return;
-
-      const now = ctx.currentTime;
-      const duration = 0.05 + Math.random() * 0.15; // 50ms - 200ms sputter duration
-      
-      // Sputter the main hum volume down to near-silence, then ramp it back up to 0.40
-      try {
-        this.humGain.gain.setValueAtTime(0.40, now);
-        this.humGain.gain.exponentialRampToValueAtTime(0.002, now + 0.015);
-        this.humGain.gain.setValueAtTime(0.002, now + duration);
-        this.humGain.gain.exponentialRampToValueAtTime(0.40, now + duration + 0.02);
-      } catch (e) {
-        if (this.humGain) this.humGain.gain.value = 0.40;
-      }
-
-
-
-      // Schedule the next random flicker event (between 1.5 and 6 seconds)
-      const nextDelay = 1500 + Math.random() * 4500;
-      this.flickerTimeout = window.setTimeout(triggerFlicker, nextDelay);
-    };
-
-    // Trigger the initial flicker loop after a brief delay
-    this.flickerTimeout = window.setTimeout(triggerFlicker, 2000);
   }
 
   private createWaterDrips(ctx: AudioContext) {
