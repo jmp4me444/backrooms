@@ -172,12 +172,12 @@ class SoundSynthesizer {
   }
 
   private createFluorescentHum(ctx: AudioContext) {
-    // Fluorescent hum is 60Hz + harmonics (120Hz, 180Hz, 300Hz, etc.)
+    // Fluorescent hum is a pure, 100% continuous 60Hz hum + harmonics (120Hz, 180Hz, 300Hz, 480Hz)
     const baseFreq = 60;
     const harmonics = [1, 2, 3, 5, 8];
     
     this.humGain = ctx.createGain();
-    this.humGain.gain.setValueAtTime(0.40, ctx.currentTime); // Louder base hum (increased from 0.15)
+    this.humGain.gain.setValueAtTime(0.40, ctx.currentTime); // Steady, constant 0.40 volume with zero dropouts
     this.humGain.connect(this.masterGain!);
     
     harmonics.forEach((h, index) => {
@@ -186,8 +186,7 @@ class SoundSynthesizer {
       osc.frequency.setValueAtTime(baseFreq * h, ctx.currentTime);
       
       const gain = ctx.createGain();
-      // Higher harmonics are quieter but scaled up for thickness
-      gain.gain.setValueAtTime(0.20 / (h * 0.8), ctx.currentTime); // Louder harmonics (increased from 0.08)
+      gain.gain.setValueAtTime(0.20 / (h * 0.8), ctx.currentTime);
       
       osc.connect(gain);
       gain.connect(this.humGain!);
@@ -196,29 +195,6 @@ class SoundSynthesizer {
       this.humOscillators.push(osc);
       this.activeNodes.push(osc);
     });
-
-    // Add a tiny buzz frequency modulation (LFO)
-    const lfo = ctx.createOscillator();
-    const lfoGain = ctx.createGain();
-    lfo.frequency.setValueAtTime(8, ctx.currentTime); // 8Hz flicker
-    lfoGain.gain.setValueAtTime(2.0, ctx.currentTime); // slightly stronger frequency buzz
-    
-    lfo.connect(lfoGain);
-    this.humOscillators.forEach(osc => {
-      lfoGain.connect(osc.frequency);
-    });
-    lfo.start();
-    this.activeNodes.push(lfo);
-
-    // Subtle 15Hz volume texture flutter
-    const volumeLfo = ctx.createOscillator();
-    const volumeLfoGain = ctx.createGain();
-    volumeLfo.frequency.setValueAtTime(15, ctx.currentTime);
-    volumeLfoGain.gain.setValueAtTime(0.02, ctx.currentTime); // smooth subtle texture
-    volumeLfo.connect(volumeLfoGain);
-    volumeLfoGain.connect(this.humGain.gain);
-    volumeLfo.start();
-    this.activeNodes.push(volumeLfo);
   }
 
   private createWaterDrips(ctx: AudioContext) {
