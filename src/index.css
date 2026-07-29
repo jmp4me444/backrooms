@@ -188,7 +188,16 @@ html, body {
   }
 }
 
+/* Force any arrows or inner elements inside touch joystick base to be 100% black and hidden */
+.touch-joystick-base * {
+  color: #000000 !important;
+  opacity: 0 !important;
+  display: none !important;
+}
+
 .touch-joystick-knob {
+  display: block !important;
+  opacity: 1 !important;
   width: 36px !important;
   height: 36px !important;
   border-radius: 9999px !important;
