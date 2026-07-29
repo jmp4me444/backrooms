@@ -85,11 +85,11 @@ export default function App() {
   const handleSynthesis = async (query: string) => {
     setIsLoading(true);
     setShowSplash(true);
-    setKeywords(query);
     setSearchQuery(query);
 
     // Call async dictionary keyword expansion for unknown words at runtime
     const expandedQuery = await expandKeywordsWithDictionary(query);
+    setKeywords(expandedQuery);
 
     const randomSeed = Math.random();
     const { theme: generatedTheme, dossier: generatedDossier, items: generatedItems } = parseKeywords(expandedQuery, randomSeed);
@@ -123,8 +123,8 @@ export default function App() {
     );
   };
 
-  const handleLevelTransition = () => {
-    const randomSeed = Math.random();
+  const handleLevelTransition = (customSeed?: number) => {
+    const randomSeed = customSeed !== undefined ? customSeed : Math.random();
     const { theme: generatedTheme, dossier: generatedDossier, items: generatedItems } = parseKeywords(keywords, randomSeed);
     setTheme(generatedTheme);
     setDossier(generatedDossier);

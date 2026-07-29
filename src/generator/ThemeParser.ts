@@ -325,6 +325,19 @@ export const parseKeywords = (query: string, seedInput?: number): { theme: RoomT
       theme.floorColor = col;
       theme.ceilingColor = col;
     }
+  } else if (!hasMetal && !hasWater && !hasTropical && !hasLava && !hasSnow && !hasDesert && !hasGold && !hasCircus && !hasMatrix && !hasSterile && !hasArcade && !hasNature) {
+    // Custom query fallback: Generate unique procedural HSL theme colors based on query hash so custom themes NEVER default to brown
+    const hash = cleanQuery.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0);
+    const hue = Math.abs(hash) % 360;
+    const sat = 30 + (Math.abs(hash * 7) % 35); // 30% - 65% saturation
+    const wallLight = 40 + (Math.abs(hash * 13) % 25); // 40% - 65% lightness
+    const floorLight = 20 + (Math.abs(hash * 17) % 20); // 20% - 40% lightness
+
+    theme.name = `Level ${Math.abs(hash) % 999}: ${query.toUpperCase()}`;
+    theme.wallColor = `hsl(${hue}, ${sat}%, ${wallLight}%)`;
+    theme.floorColor = `hsl(${hue}, ${sat}%, ${floorLight}%)`;
+    theme.ceilingColor = `hsl(${hue}, ${sat}%, ${wallLight + 10}%)`;
+    theme.fogColor = `hsl(${hue}, ${sat}%, ${Math.max(10, wallLight - 20)}%)`;
   }
 
   // Modifiers
