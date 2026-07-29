@@ -1,0 +1,13 @@
+{
+  "name": "M.E.G. Backrooms Explorer - Nintendo Switch Homebrew Edition",
+  "author": "Antigravity & User",
+  "version": "1.0.0",
+  "category": "3D Game / Simulation",
+  "description": "Unencrypted Nintendo Switch Homebrew .nro bundle playable in Ryujinx & Atmosphere without prod.keys.",
+  "settings": {
+    "resolution": "1280x720 (Handheld) / 1920x1080 (Docked)",
+    "target_fps": 60,
+    "web_audio": true,
+    "gamepad_api": true
+  }
+}
