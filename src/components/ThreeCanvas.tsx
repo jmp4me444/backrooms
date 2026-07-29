@@ -88,7 +88,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
   const fountainsRef = useRef<{ mesh: THREE.Group; particles: { mesh: THREE.Mesh; vx: number; vy: number; vz: number; oy: number }[] }[]>([]);
   const steamParticlesRef = useRef<{ mesh: THREE.Mesh; vx: number; vy: number; vz: number; life: number; maxLife: number; ox: number; oy: number; oz: number }[]>([]);
   const cassettesRef = useRef<{ mesh: THREE.Group; played: boolean; logIndex: number }[]>([]);
-  const crtTVsRef = useRef<{ screenMat: THREE.MeshBasicMaterial; light: THREE.PointLight }[]>([]);
+  const crtTVsRef = useRef<{ screenMat: THREE.MeshBasicMaterial; light: THREE.PointLight; updateTV?: (time: number) => void }[]>([]);
   const lastTVBroadcastTimeRef = useRef<number>(0);
   const sparkEmittersRef = useRef<THREE.Vector3[]>([]);
   const ambientLightRef = useRef<THREE.AmbientLight | null>(null);
@@ -2297,7 +2297,53 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           bezel.position.set(0, 0.17, 0.161);
           tvGroup.add(bezel);
           
-          const crtScreenMat = new THREE.MeshBasicMaterial({ color: 0x88ccff });
+          // Create dynamic live animated CRT screen texture
+          const cvs = document.createElement('canvas');
+          cvs.width = 256; cvs.height = 192;
+          const ctx = cvs.getContext('2d')!;
+          const crtTexture = new THREE.CanvasTexture(cvs);
+          
+          const updateTVFrame = (t: number) => {
+            ctx.fillStyle = '#050a0e';
+            ctx.fillRect(0, 0, 256, 192);
+
+            // SMPTE Color Bars
+            const colors = ['#c0c0c0', '#c0c000', '#00c0c0', '#00c000', '#c000c0', '#c00000', '#0000c0'];
+            for (let b = 0; b < 7; b++) {
+              ctx.fillStyle = colors[b];
+              ctx.fillRect(b * (256 / 7), 0, 256 / 7, 115);
+            }
+
+            // Animated Sine Wave Oscilloscope Signal
+            ctx.strokeStyle = '#00ffcc';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            for (let px = 0; px < 256; px += 4) {
+              const py = 145 + Math.sin(px * 0.05 + t * 8) * 16;
+              if (px === 0) ctx.moveTo(px, py);
+              else ctx.lineTo(px, py);
+            }
+            ctx.stroke();
+
+            // Emergency Broadcast Text Banner
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 115, 256, 22);
+            ctx.fillStyle = (t * 2) % 1.0 > 0.5 ? '#ff2222' : '#ffffff';
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText('⚡ M.E.G. EMERGENCY SIGNAL', 12, 130);
+
+            // Moving VHS Noise Scanlines
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            for (let i = 0; i < 35; i++) {
+              const rx = Math.random() * 256;
+              const ry = Math.random() * 192;
+              ctx.fillRect(rx, ry, Math.random() * 20 + 5, 1);
+            }
+
+            crtTexture.needsUpdate = true;
+          };
+
+          const crtScreenMat = new THREE.MeshBasicMaterial({ map: crtTexture });
           const crtScreen = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.24, 0.02), crtScreenMat);
           crtScreen.position.set(-0.04, 0.17, 0.168);
           tvGroup.add(crtScreen);
@@ -2319,7 +2365,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           tvGroup.add(ant1, ant2);
           
           // Localized flickering CRT blue-cyan light emission
-          const tvLight = new THREE.PointLight(0x70c8ff, 2.2, 4.0);
+          const tvLight = new THREE.PointLight(0x70c8ff, 2.8, 5.0);
           tvLight.position.set(0, 0.2, 0.3);
           tvLight.castShadow = true;
           tvGroup.add(tvLight);
@@ -2327,7 +2373,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
           secretGroup.add(tvGroup);
           mazeGroup.add(secretGroup);
 
-          crtTVsRef.current.push({ screenMat: crtScreenMat, light: tvLight });
+          crtTVsRef.current.push({ screenMat: crtScreenMat, light: tvLight, updateTV: updateTVFrame });
           
           // Register this secret broadcast in our cassettes array!
           cassettesRef.current.push({
@@ -5106,12 +5152,15 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
  
-      // Dynamic CRT TV screen flicker animation
+      // Dynamic CRT TV screen broadcast and flicker animation
       if (crtTVsRef.current.length > 0) {
         for (let i = 0; i < crtTVsRef.current.length; i++) {
           const tv = crtTVsRef.current[i];
+          if (tv.updateTV) {
+            tv.updateTV(elapsedTime);
+          }
           if (Math.random() < 0.45) {
-            tv.light.intensity = 1.0 + Math.random() * 2.0;
+            tv.light.intensity = 1.8 + Math.random() * 2.0;
             const flickerColor = Math.random() > 0.2 ? 0x70c8ff : 0xd0eeff;
             tv.screenMat.color.setHex(flickerColor);
           }
