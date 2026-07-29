@@ -150,23 +150,24 @@ html, body {
   flex-direction: column;
 }
 
-/* Touch screen joystick styling (Left side only) */
+/* Touch screen joystick styling (Bottom Left corner) */
 .touch-joystick-base {
   position: absolute !important;
-  bottom: 220px !important;
-  left: 24px !important; /* left-6 */
+  bottom: 24px !important;
+  left: 24px !important; /* bottom-left */
   z-index: 40 !important;
-  width: 80px !important; /* w-20 */
-  height: 80px !important; /* h-20 */
-  border-radius: 9999px !important; /* rounded-full */
-  border: 1px solid rgba(16, 185, 129, 0.3) !important; /* border border-green-500/30 */
-  background-color: rgba(0, 0, 0, 0.65) !important; /* bg-black/65 */
-  backdrop-filter: blur(4px) !important; /* backdrop-blur-sm */
+  width: 90px !important;
+  height: 90px !important;
+  border-radius: 9999px !important;
+  border: 2px solid rgba(16, 185, 129, 0.6) !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(6px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   user-select: none !important;
   touch-action: none !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.25) !important;
 }
 
 /* Hide on desktop screens (>= 1024px width) */
@@ -177,12 +178,12 @@ html, body {
 }
 
 .touch-joystick-knob {
-  width: 32px !important; /* w-8 */
-  height: 32px !important; /* h-8 */
-  border-radius: 9999px !important; /* rounded-full */
-  background-color: rgba(16, 185, 129, 0.45) !important; /* bg-green-500/45 */
-  border: 1px solid rgba(16, 185, 129, 0.7) !important; /* border-green-500/70 */
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.3) !important; /* shadow-[0_0_12px_rgba(16,185,129,0.3)] */
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 9999px !important;
+  background-color: rgba(16, 185, 129, 0.55) !important;
+  border: 1.5px solid rgba(16, 185, 129, 0.85) !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.4) !important;
   transition: transform 0.075s ease-out !important;
   pointer-events: none !important;
 }
@@ -207,32 +208,33 @@ canvas {
 .h-full { height: 100% !important; }
 .flex-1 { flex: 1 1 0% !important; }
 
-/* Touch screen hammer button styling (Right side) */
+/* Touch screen hammer button styling (Bottom Right corner) */
 .touch-hammer-btn {
   position: absolute !important;
-  bottom: 220px !important;
-  right: 24px !important;
+  bottom: 24px !important;
+  right: 24px !important; /* bottom-right */
   z-index: 40 !important;
-  width: 64px !important;
-  height: 64px !important;
+  width: 76px !important;
+  height: 76px !important;
   border-radius: 9999px !important;
-  border: 1px solid rgba(16, 185, 129, 0.4) !important;
-  background-color: rgba(0, 0, 0, 0.65) !important;
-  backdrop-filter: blur(4px) !important;
+  border: 2px solid rgba(16, 185, 129, 0.65) !important;
+  background-color: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(6px) !important;
   display: flex !important;
+  flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
   color: #10b981 !important;
   user-select: none !important;
   touch-action: none !important;
   cursor: pointer !important;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.3) !important;
   transition: transform 0.1s ease !important;
 }
 
 .touch-hammer-btn:active {
   transform: scale(0.9) !important;
-  background-color: rgba(16, 185, 129, 0.15) !important;
+  background-color: rgba(16, 185, 129, 0.25) !important;
 }
 
 @media (min-width: 1024px) {

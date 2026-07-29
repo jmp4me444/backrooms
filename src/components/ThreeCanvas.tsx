@@ -5326,7 +5326,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
 
 
 
-      {/* Touch Screen Joystick (unconditionally rendered, hidden on desktop via CSS) */}
+      {/* Bottom-Left Directional Movement Controller (Mobile) */}
       <div 
         className="touch-joystick-base"
         onTouchStart={handleLeftTouchStart}
@@ -5334,18 +5334,27 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         onTouchEnd={handleLeftTouchEnd}
       >
         <div ref={leftKnobRef} className="touch-joystick-knob" />
+        <span className="absolute top-1 text-[8px] text-emerald-400/60 font-mono pointer-events-none">▲</span>
+        <span className="absolute bottom-1 text-[8px] text-emerald-400/60 font-mono pointer-events-none">▼</span>
+        <span className="absolute left-1 text-[8px] text-emerald-400/60 font-mono pointer-events-none">◀</span>
+        <span className="absolute right-1 text-[8px] text-emerald-400/60 font-mono pointer-events-none">▶</span>
       </div>
 
-      {/* Swing Hammer Button (Mobile touch target, hidden on desktop via CSS) */}
+      {/* Bottom-Right Hammer Swing Controller (Mobile) */}
       <button
         className="touch-hammer-btn"
         onClick={() => triggerHammerSwing()}
+        onTouchStart={(e) => {
+          e.preventDefault();
+          triggerHammerSwing();
+        }}
       >
-        <svg viewBox="0 0 24 24" width="28" height="28" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 24 24" width="30" height="30" stroke="currentColor" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
           <path d="m15 12-8.373 8.373a1 1 0 1 1-1.414-1.414L13.586 10.586A2 2 0 0 1 15 12Z"/>
           <path d="m18 9 3-3-3-3-3 3 3 3Z"/>
           <path d="m14 5 5 5"/>
         </svg>
+        <span className="text-[7px] font-mono font-bold tracking-widest text-emerald-300 mt-0.5 pointer-events-none">HAMMER</span>
       </button>
     </div>
   );
