@@ -3119,8 +3119,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       theme.lightingStyle === 'sunlight' ? 0xdcf0fa : // sky blue ambient
       theme.lightingStyle === 'red-alarm' ? 0x886e68 : // warmer/brighter rusty-orange ambient glow
       theme.lightingStyle === 'neon' ? 0x4f228f : // bright violet-blue ambient for Neon Playrooms!
-      theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0x666666,
-      theme.lightingStyle === 'sunlight' ? 0.95 : 1.0
+      theme.lightingStyle === 'flashlight-only' ? 0x111111 : 0xaaaaaa, // bright neutral ambient light
+      theme.lightingStyle === 'sunlight' ? 0.95 : 1.2
     );
     scene.add(ambientLight);
     ambientLightRef.current = ambientLight;
@@ -3142,13 +3142,13 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       sunLight.shadow.camera.bottom = -d;
       sunLight.shadow.bias = -0.0005;
     } else {
-      sunLight = new THREE.DirectionalLight(0xffffff, 0.15);
+      sunLight = new THREE.DirectionalLight(0xffffff, 0.35);
       sunLight.position.set(10, 20, 10);
     }
     scene.add(sunLight);
 
     if (theme.lightingStyle !== 'flashlight-only' && theme.lightingStyle !== 'sunlight') {
-      const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : theme.lightingStyle === 'neon' ? 3.5 : 1.5;
+      const intensity = theme.lightingStyle === 'red-alarm' ? 2.5 : theme.lightingStyle === 'white-sterile' ? 2.0 : theme.lightingStyle === 'neon' ? 3.5 : 2.2;
       const color = theme.lightingStyle === 'red-alarm' ? 0xff0000 : 
                     theme.lightingStyle === 'neon' ? 0x00ffff : 
                     theme.lightingStyle === 'matrix' ? 0x39ff14 : 0xfffae0; // phosphor green!
@@ -4691,7 +4691,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const themeColor = theme.lightingStyle === 'matrix' ? new THREE.Color(0x3ca649) :
                                theme.lightingStyle === 'sunlight' ? new THREE.Color(0xdcf0fa) :
                                theme.lightingStyle === 'red-alarm' ? new THREE.Color(0x886e68) :
-                               theme.lightingStyle === 'flashlight-only' ? new THREE.Color(0x111111) : new THREE.Color(0x666666);
+                               theme.lightingStyle === 'flashlight-only' ? new THREE.Color(0x111111) : new THREE.Color(0xaaaaaa);
             ambientLightRef.current.color.copy(themeColor);
           }
           Synthesizer.stopSiren();
@@ -4772,7 +4772,7 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             const themeColor = theme.lightingStyle === 'matrix' ? new THREE.Color(0x3ca649) :
                                theme.lightingStyle === 'sunlight' ? new THREE.Color(0xdcf0fa) :
                                theme.lightingStyle === 'red-alarm' ? new THREE.Color(0x886e68) :
-                               theme.lightingStyle === 'flashlight-only' ? new THREE.Color(0x111111) : new THREE.Color(0x666666);
+                               theme.lightingStyle === 'flashlight-only' ? new THREE.Color(0x111111) : new THREE.Color(0xaaaaaa);
             const alertColor = new THREE.Color(0x990000).lerp(new THREE.Color(0xff1111), pulse);
             ambientLightRef.current.color.copy(themeColor).lerp(alertColor, 0.85);
           }
