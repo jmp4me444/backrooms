@@ -179,18 +179,7 @@ html, body {
   box-shadow: 0 0 20px rgba(16, 185, 129, 0.35) !important;
 }
 
-/* Directional Arrow Overlay styling */
-.touch-arrow {
-  position: absolute !important;
-  font-family: monospace !important;
-  font-size: 9px !important;
-  color: rgba(52, 211, 153, 0.6) !important;
-  pointer-events: none !important;
-}
-.top-arrow { top: 4px !important; }
-.bottom-arrow { bottom: 4px !important; }
-.left-arrow { left: 5px !important; }
-.right-arrow { right: 5px !important; }
+
 
 /* Hide on desktop screens with fine pointer */
 @media (min-width: 1024px) and (pointer: fine) {

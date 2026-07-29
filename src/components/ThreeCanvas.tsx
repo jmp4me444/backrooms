@@ -5337,10 +5337,6 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
             onTouchEnd={handleLeftTouchEnd}
           >
             <div ref={leftKnobRef} className="touch-joystick-knob" />
-            <span className="touch-arrow top-arrow">▲</span>
-            <span className="touch-arrow bottom-arrow">▼</span>
-            <span className="touch-arrow left-arrow">◀</span>
-            <span className="touch-arrow right-arrow">▶</span>
           </div>
 
           {/* Bottom-Right Hammer Swing Controller (Mobile) */}
