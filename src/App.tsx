@@ -109,10 +109,10 @@ export default function App() {
       setIsLoading(false);
       setShowSplash(false);
 
-      // Activate Sanity Meter 3.0 seconds AFTER level is fully loaded & visible!
+      // Activate Sanity Meter 10 seconds AFTER level is fully loaded & visible!
       setTimeout(() => {
         setIsSanityActive(true);
-      }, 3000);
+      }, 10000);
     }, 2500);
   };
 

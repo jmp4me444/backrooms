@@ -4667,17 +4667,20 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
         }
       }
 
-      // Almond Milk Proximity & Auto-Drink Detection
+      // Almond Milk Proximity & Auto-Drink Detection (Runs 10s after level load)
       let nearestMilk = null;
       let minMilkDist = 2.0;
-      for (let i = 0; i < almondMilksRef.current.length; i++) {
-        const milk = almondMilksRef.current[i];
-        const mPos = new THREE.Vector3();
-        milk.mesh.getWorldPosition(mPos);
-        const dist = camera.position.distanceTo(mPos);
-        if (dist < minMilkDist) {
-          minMilkDist = dist;
-          nearestMilk = milk;
+      if (isSanityActive && elapsedTime > 10.0) {
+        for (let i = 0; i < almondMilksRef.current.length; i++) {
+          const milk = almondMilksRef.current[i];
+          if (!milk || !milk.mesh || !milk.mesh.parent) continue;
+          const mPos = new THREE.Vector3();
+          milk.mesh.getWorldPosition(mPos);
+          const dist = camera.position.distanceTo(mPos);
+          if (dist < minMilkDist) {
+            minMilkDist = dist;
+            nearestMilk = milk;
+          }
         }
       }
 
@@ -5146,8 +5149,8 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
       // Update Audio Synthesizer EMF Static volume
       Synthesizer.setEMFIntensity(totalEMF);
 
-      // Continuous Sanity Drain Calculation & Zero-Sanity Check (Activates 3s AFTER level load completes)
-      if (isSanityActive && !hasDiedFromSanityRef.current && elapsedTime > 3.0) {
+      // Continuous Sanity Drain Calculation & Zero-Sanity Check (Activates 10s AFTER level load completes)
+      if (isSanityActive && !hasDiedFromSanityRef.current && elapsedTime > 10.0) {
         let drainRate = 0.2 * delta; // baseline slow drain (-0.2% per sec)
         if (monsterDist < 8.0) {
           drainRate += (8.0 - monsterDist) * 0.5 * delta; // faster when near monster
