@@ -181,15 +181,15 @@ html, body {
 
 
 
-/* Hide on desktop screens with fine pointer */
-@media (min-width: 1024px) and (pointer: fine) {
-  .mobile-touch-controls-root {
+/* Enable mobile touch controls on all touch screens (phones, tablets, iPads, foldable devices) regardless of width */
+@media (hover: hover) and (pointer: fine) and (min-width: 1400px) {
+  body:not(.has-touch) .mobile-touch-controls-root {
     display: none !important;
   }
 }
 
-/* Force any arrows or inner elements inside touch joystick base to be 100% black and hidden */
-.touch-joystick-base * {
+/* Hide any unexpected arrows or SVG elements inside touch joystick base while keeping knob visible */
+.touch-joystick-base *:not(.touch-joystick-knob) {
   color: #000000 !important;
   opacity: 0 !important;
   display: none !important;

@@ -980,6 +980,11 @@ export const ThreeCanvas: React.FC<ThreeCanvasProps> = ({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    // Tag document.body for tablets and touch screens
+    if ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      document.body.classList.add('has-touch');
+    }
+
     const handleMouseDown = (e: MouseEvent) => {
       isDraggingRef.current = true;
       if (document.activeElement instanceof HTMLElement) {
