@@ -7,7 +7,7 @@ import { SanityHUD } from './components/SanityHUD';
 import { parseKeywords, expandKeywordsWithDictionary } from './generator/ThemeParser';
 import Synthesizer from './audio/Synthesizer';
 import type { RoomTheme, LevelDossier, SearchableItem } from './types';
-import vaultGateImg from './assets/vault_gate.jpg';
+const vaultGateImg = './vault_gate.jpg';
 
 const PRESET_THEMES = [
   { label: 'Yellow Lobby', query: 'yellow walls, office, hum' },
@@ -443,12 +443,12 @@ export default function App() {
           alt="M.E.G. Staging Entrance" 
           style={{
             position: 'absolute',
-            top: 0,
-            left: 0,
+            inset: 0,
             width: '100%',
             height: '100%',
-            objectFit: 'cover',
-            filter: 'brightness(0.6) contrast(1.1) saturate(0.95)'
+            objectFit: 'contain',
+            backgroundColor: '#050505',
+            filter: 'brightness(0.75) contrast(1.08) saturate(0.98)'
           }}
         />
         
